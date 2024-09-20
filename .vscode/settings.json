@@ -1,0 +1,8 @@
+{
+	"files.associations": {
+		"*.rmd": "markdown",
+		"vmlinux.h": "c",
+		"bpf_tracing.h": "c",
+		"playground.skel.h": "c"
+	}
+}
