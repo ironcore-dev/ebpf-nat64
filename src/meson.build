@@ -1,6 +1,13 @@
 # Define source and header files
 bpf_kern_header_files = [
-	'ebpf_nat64.h'
+	'nat64_table_tuple.h',
+	'nat64_print.h',
+	'nat64_kern.h',
+	'nat64_checksum.h',
+	'nat64_modify_hdr.h',
+	'nat64_ipaddr.h',
+	'nat64_common.h',
+	'nat64_addr_port_assignment.h'
 	]  # Add header files as needed
 
 bpf_kern_source_files = [
@@ -8,14 +15,21 @@ bpf_kern_source_files = [
 	]  # Add other source files as needed
 
 
+header_dir = meson.current_source_dir()
+bpf_kern_headers = []
+foreach h : bpf_kern_header_files
+    bpf_kern_headers += files(header_dir / h)
+endforeach
+
 # Build BPF code
 bpf_prog = custom_target('ebpf_nat64_bpf',
-	input : bpf_kern_source_files,
+	input : ['ebpf_nat64.bpf.c'],
 	output : 'ebpf_nat64.bpf.built.o',
 	command : [clang, '-g', '-O2', '-target', 'bpf',
 				'-D__TARGET_ARCH_' + arch, '-I' + meson.current_source_dir(),
 				'-I' + libbpf_src, clang_includes, '-c', '@INPUT@', '-o', '@OUTPUT@'],
 	depends : [libbpf, bpftool],
+	depend_files : bpf_kern_header_files,
 	build_by_default : true
 )
 
