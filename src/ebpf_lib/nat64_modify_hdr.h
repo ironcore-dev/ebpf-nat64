@@ -2,6 +2,7 @@
 #define __NAT64_MODIFY_HDR_H
 
 #include <linux/in.h>
+#include <linux/if_ether.h>
 #include <linux/in6.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
@@ -10,9 +11,8 @@
 #include <linux/icmp.h>
 #include <linux/icmpv6.h>
 
-#include "nat64_common.h"
-#include "nat64_table_tuple.h"
-#include "nat64_print.h"
+#include "include/nat64_common.h"
+#include "include/nat64_table_tuple.h"
 
 
 __attribute__((__always_inline__)) static int

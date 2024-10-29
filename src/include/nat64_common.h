@@ -1,7 +1,6 @@
 #ifndef __NAT64_COMMON_H
 #define __NAT64_COMMON_H
 
-#include <linux/in.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <bpf/bpf_endian.h>
@@ -31,8 +30,6 @@
 #define NAT64_PORT_MAX_RANDOM_RETRY 1
 
 #define NAT64_ADDR_PORT_ASSIGNMENT_FETCH_RETRY 3
-
-#define NAT64_SHARED_MAP_PIN_PATH "/sys/fs/bpf"
 
 
 enum nat64_ip_version {

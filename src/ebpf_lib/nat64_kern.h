@@ -3,7 +3,7 @@
 
 #include <linux/in.h>
 
-#include "nat64_common.h"
+#include "include/nat64_common.h"
 
 #define assert_len(target, end)  \
 	if ((void *)(target + 1) > end) \
@@ -11,15 +11,15 @@
 
 #define NAT64_KERN_PROG
 
-#include "nat64_print.h"
+#include "include/nat64_table_tuple.h"
+
 #include "nat64_checksum.h"
-#include "nat64_table_tuple.h"
 #include "nat64_modify_hdr.h"
+#include "nat64_ipv6_addr_check.h"
 
 
 #define NAT64_V6_V4_HDR_LENGTH_DIFF ((int)(sizeof(struct ipv6hdr) - sizeof(struct iphdr)))
 #define NAT64_ICMP_HDR_MAX_LENGTH 128 //bytes
-
 
 
 #endif

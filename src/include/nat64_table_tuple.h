@@ -1,7 +1,6 @@
 #ifndef __NAT64_TABLE_TUPLE_H
 #define __NAT64_TABLE_TUPLE_H
 
-#include <linux/in.h>
 #include <string.h>
 #include <bpf/bpf_endian.h>
 

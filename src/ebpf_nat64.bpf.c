@@ -31,13 +31,13 @@ struct {
 	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } nat64_v6_v4_map SEC(".maps");
 
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__type(key, __u32); // Interface index
-	__type(value, __u64); // Packet count
-	__uint(max_entries, NAT64_ATTACH_IFACE_MAX_CNT);
-	__uint(pinning, LIBBPF_PIN_BY_NAME);
-} iface_packet_count_map SEC(".maps");
+// struct {
+// 	__uint(type, BPF_MAP_TYPE_HASH);
+// 	__type(key, __u32); // Interface index
+// 	__type(value, __u64); // Packet count
+// 	__uint(max_entries, NAT64_ATTACH_IFACE_MAX_CNT);
+// 	__uint(pinning, LIBBPF_PIN_BY_NAME);
+// } iface_packet_count_map SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -52,6 +52,7 @@ struct {
   __uint (max_entries, NAT64_NEW_FLOW_EVENT_RINGBUFFER_SIZE);
 } nat64_new_flow_event_rb SEC (".maps") /* event ringbuf to inform userspace prog in terms of new IPv6 flow */;
 
+
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u32); // IPv4 address
@@ -65,23 +66,25 @@ struct {
 	__type(key, struct nat64_address_port_item);
 	__type(value, __u8);
 	__uint(max_entries, NAT64_MAX_ADDR_PORT_IN_USE);
-} nat64_address_port_in_use_map SEC(".maps");
+} nat64_address_port_in_use_map SEC(".maps"); // only used by userspace prog
 
 
 // Function to update the packet count for the given interface index
-static inline void update_packet_count(__u32 iface_index) {
-	__u64 *count, initial_count = 0;
+// static inline void update_packet_count(__u32 iface_index) {
+// 	__u64 *count, initial_count = 0;
 
-	// Look up the current count for the interface index
-	count = bpf_map_lookup_elem(&iface_packet_count_map, &iface_index);
-	if (count) {
-		// If found, increment the count
-		__sync_fetch_and_add(count, 1);
-	} else {
-		// If not found, create a new entry with initial count
-		bpf_map_update_elem(&iface_packet_count_map, &iface_index, &initial_count, BPF_ANY);
-	}
-}
+// 	// Look up the current count for the interface index
+// 	count = bpf_map_lookup_elem(&iface_packet_count_map, &iface_index);
+// 	if (count) {
+// 		// If found, increment the count
+// 		__sync_fetch_and_add(count, 1);
+// 	} else {
+// 		// If not found, create a new entry with initial count
+// 		bpf_map_update_elem(&iface_packet_count_map, &iface_index, &initial_count, BPF_ANY);
+// 	}
+// }
+
+
 
 __attribute__((__always_inline__)) static inline int
 send_new_flow_event(__u32 iface_index)
@@ -389,7 +392,7 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 			//bpf_printk("Failed to fetch an assigned nat64 addr and port");
 			return NAT64_ERROR;
 		}
-		//bpf_printk("fliow value IP after %u", flow_value->addr.nat64_v4_addr);
+		NAT64_LOG_INFO("flow value IP", NAT64_LOG_IPV4(flow_value->addr.nat64_v4_addr));
 	}
 
 		// Update the last seen timestamp
@@ -513,23 +516,21 @@ nat64_parse_l2(struct xdp_md *ctx)
 	//bpf_printk("data: %p, data_end: %p", data, data_end);
 
 	// Update the packet count for the interface
-	update_packet_count(iface_index);
+	// update_packet_count(iface_index);
 	//bpf_printk("ebpf_nat64 packet received");
 	
-	if(eth->h_proto == bpf_htons(ETH_P_IP)) {
+	if(eth->h_proto == bpf_htons(ETH_P_IP))
 		return process_ipv4_pkt(ctx, eth + 1, eth);
-	}
 
-	if(eth->h_proto == bpf_htons(ETH_P_IPV6)) {
+	if(eth->h_proto == bpf_htons(ETH_P_IPV6))
 		return process_ipv6_pkt(ctx, eth + 1, eth);
-	}
+
 	return NAT64_OK;
 }
 
 SEC("xdp")
 int xdp_nat64(struct xdp_md *ctx)
 {
-	NAT64_LOG_INFO("received a packet");
 	if (NAT64_FAILED(nat64_parse_l2(ctx)))
 		return XDP_DROP;
 	else

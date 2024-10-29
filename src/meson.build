@@ -1,35 +1,38 @@
 # Define source and header files
+bpf_common_header_files = [
+	'include/nat64_common.h',
+	'include/nat64_addr_port_assignment.h',
+	'include/nat64_ipaddr.h',
+	'include/nat64_log_common.h',
+	'include/nat64_table_tuple.h'
+]
+
 bpf_kern_header_files = [
-	'nat64_table_tuple.h',
-	'nat64_print.h',
-	'nat64_kern.h',
-	'nat64_checksum.h',
-	'nat64_modify_hdr.h',
-	'nat64_ipaddr.h',
-	'nat64_common.h',
-	'nat64_addr_port_assignment.h'
-	]  # Add header files as needed
-
-bpf_kern_source_files = [
-	'ebpf_nat64.bpf.c'
-	]  # Add other source files as needed
+	'ebpf_lib/nat64_kern.h',
+	'ebpf_lib/nat64_modify_hdr.h',
+	'ebpf_lib/nat64_checksum.h',
+	'ebpf_lib/nat64_kern_log.h'
+]  # Add header files as needed
 
 
-header_dir = meson.current_source_dir()
-bpf_kern_headers = []
-foreach h : bpf_kern_header_files
-    bpf_kern_headers += files(header_dir / h)
-endforeach
+# header_dir = meson.current_source_dir()
+# bpf_kern_headers = []
+# foreach h : bpf_kern_header_files
+#     bpf_kern_headers += files(header_dir / h)
+# endforeach
 
 # Build BPF code
 bpf_prog = custom_target('ebpf_nat64_bpf',
 	input : ['ebpf_nat64.bpf.c'],
 	output : 'ebpf_nat64.bpf.built.o',
 	command : [clang, '-g', '-O2', '-target', 'bpf',
-				'-D__TARGET_ARCH_' + arch, '-I' + meson.current_source_dir(),
+				'-D__TARGET_ARCH_' + arch,
+				'-I' + meson.current_source_dir(),
+				'-I' + meson.current_source_dir() / 'ebpf_lib',
+				'-I' + meson.current_source_dir() / 'include',
 				'-I' + libbpf_src, clang_includes, '-c', '@INPUT@', '-o', '@OUTPUT@'],
 	depends : [libbpf, bpftool],
-	depend_files : bpf_kern_header_files,
+	depend_files : [bpf_common_header_files, bpf_kern_header_files],
 	build_by_default : true
 )
 
@@ -50,10 +53,41 @@ bpf_skel = custom_target('bpf_skel',
 	build_by_default : true
 )
 
+
+
+
+user_app_sources = [
+	'ebpf_nat64.c',
+	'nat64_conf.c',
+	'nat64_conf_opts.c',
+	'nat64_ebpf_skel_handler.c',
+	'nat64_running_thread.c',
+	'nat64_addr_port_manage.c',
+	'nat64_user_log.c',
+	# Add more .c files here as needed
+]
+
+# Define user application headers
+user_app_headers = [
+	'include/user_app/nat64_conf.h',
+	'include/user_app/nat64_conf_opts.h',
+	'include/user_app/nat64_user.h',
+	'include/user_app/nat64_ebpf_skel_handler.h',
+	'include/user_app/nat64_running_thread.h',
+	'include/user_app/nat64_addr_port_manage.h',
+	'include/user_app/nat64_user_log.h',
+	# Add more .h files here as needed
+]
+
+
 # Main application
 executable('ebpf_nat64',
-	['ebpf_nat64.c', bpf_skel],
-	include_directories : inc,
+	[user_app_sources, bpf_skel],
+	include_directories : [
+		inc,
+		include_directories('include'),
+		include_directories('include/user_app'),
+	],
 	dependencies : [libbpf_dep, libelf, libz, thread_dep],
 	link_with : libbpf,
 	install : true

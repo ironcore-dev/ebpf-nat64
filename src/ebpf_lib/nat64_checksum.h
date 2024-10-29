@@ -2,10 +2,13 @@
 #define __NAT64_CHECKSUM_H
 
 
-#include <linux/in.h>
+#include <linux/ipv6.h>
+#include <linux/ip.h>
 #include <string.h>
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
+
+#include "../include/nat64_common.h"
 
 
 /** helper functions copied from https://github.com/cilium/cilium/blob/main/bpf/include/bpf/csum.h **/
