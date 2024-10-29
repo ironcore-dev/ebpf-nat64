@@ -8,10 +8,10 @@
 
 // Define event types
 
-#define NAT64_LOG_LEVEL_ERROR	1
-#define NAT64_LOG_LEVEL_WARNING	2
-#define NAT64_LOG_LEVEL_INFO	3
-#define NAT64_LOG_LEVEL_DEBUG	4
+#define NAT64_LOG_LEVEL_ERROR	0
+#define NAT64_LOG_LEVEL_WARNING	1
+#define NAT64_LOG_LEVEL_INFO	2
+#define NAT64_LOG_LEVEL_DEBUG	3
 
 // Define maximum string sizes
 #define NAT64_LOG_MSG_SIZE		256
@@ -25,11 +25,11 @@
 #define NAT64_LOG_TYPE_UINT		3
 #define NAT64_LOG_TYPE_IPV4		4
 #define NAT64_LOG_TYPE_IPV6		5
-#define NAT64_LOG_TYPE_PORT		6
+
 
 // Value structure
 struct nat64_kernel_log_value {
-	__u8 type;
+	__u16 type;
 	char key[NAT64_LOG_KEY_SIZE];
 	union {
 		char value_str[NAT64_LOG_VALUE_SIZE];
@@ -45,7 +45,7 @@ struct nat64_kernel_log_value {
 struct nat64_kernel_log_event {
 	__u8 log_value_entry_count;  // number of key-value pairs
 	__u32 log_level;
-	__u64 timestamp;
+	// __u64 timestamp;
 	char msg[NAT64_LOG_MSG_SIZE];
 	struct nat64_kernel_log_value entries[NAT64_LOG_MAX_ENTRIES];
 };

@@ -2,7 +2,6 @@
 #define __NAT64_ADDR_PORT_ASSIGNMENT_H
 
 
-#include <linux/in.h>
 #include <bpf/bpf_endian.h>
 #include <string.h>
 
@@ -10,6 +9,7 @@
 
 
 struct nat64_address_ports_range {
+	__u32 addr;
 	__u16 port_range[2];
 };
 
