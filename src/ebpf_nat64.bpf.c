@@ -12,6 +12,7 @@
 #include <bpf/bpf_helpers.h>
 
 #include "nat64_kern.h"
+#include "nat64_kern_log.h"
 
 
 struct {
@@ -49,7 +50,7 @@ struct {
 struct {
   __uint (type, BPF_MAP_TYPE_RINGBUF);
   __uint (max_entries, NAT64_NEW_FLOW_EVENT_RINGBUFFER_SIZE);
-} nat64_new_flow_event_rb SEC (".maps") /* placed in maps section */;
+} nat64_new_flow_event_rb SEC (".maps") /* event ringbuf to inform userspace prog in terms of new IPv6 flow */;
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -528,6 +529,7 @@ nat64_parse_l2(struct xdp_md *ctx)
 SEC("xdp")
 int xdp_nat64(struct xdp_md *ctx)
 {
+	NAT64_LOG_INFO("received a packet");
 	if (NAT64_FAILED(nat64_parse_l2(ctx)))
 		return XDP_DROP;
 	else

@@ -11,9 +11,9 @@
 
 #define NAT64_KERN_PROG
 
+#include "nat64_print.h"
 #include "nat64_checksum.h"
 #include "nat64_table_tuple.h"
-#include "nat64_print.h"
 #include "nat64_modify_hdr.h"
 
 
