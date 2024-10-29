@@ -3,9 +3,17 @@
 
 #include "nat64_table_tuple.h"
 
+
+struct nat64_kern_prog_log_event {
+	__u32 iface_index;
+	__u8  log_evet_type;
+	__u8 message[1023];
+};
+
 #ifdef NAT64_KERN_PROG
 
 #include <bpf/bpf_helpers.h>
+
 #define NAT64_PRINT(MESSAGE, ...) bpf_printk(MESSAGE, ##__VA_ARGS__)
 
 #else
@@ -13,7 +21,6 @@
 #define NAT64_PRINT(MESSAGE, ...) printf(MESSAGE, ##__VA_ARGS__)
 
 #endif
-
 
 
 
