@@ -11,7 +11,8 @@ bpf_kern_header_files = [
 	'ebpf_lib/nat64_kern.h',
 	'ebpf_lib/nat64_modify_hdr.h',
 	'ebpf_lib/nat64_checksum.h',
-	'ebpf_lib/nat64_kern_log.h'
+	'ebpf_lib/nat64_kern_log.h',
+	'ebpf_lib/nat64_flow_handling.h'
 ]  # Add header files as needed
 
 

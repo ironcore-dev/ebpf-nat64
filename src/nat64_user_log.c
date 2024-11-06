@@ -63,7 +63,7 @@ static const char *const log_levels[] = {
 };
 
 static bool log_json = false;
-static uint8_t _log_level = NAT64_LOG_LEVEL_INFO;
+static uint8_t _log_level = NAT64_LOG_LEVEL_DEBUG;
 static const char *const *log_formatter = log_formatter_text;
 static const char *const *log_sources = log_sources_text;
 
@@ -267,7 +267,7 @@ static void nat64_kern_log_print(unsigned int level, unsigned int log_source,
 				fprintf(f, FORMAT_UINT, key, *(unsigned int *)value);
 				break;
 			case NAT64_LOG_TYPE_IPV4:
-				ipv4_value = *(uint32_t *)value;
+				ipv4_value = *(uint32_t *)value;  // expect host order
 				fprintf(f, FORMAT_IPV4, key, ((ipv4_value) >> 24) & 0xFF,
 											((ipv4_value) >> 16) & 0xFF,
 											((ipv4_value) >> 8) & 0xFF,
@@ -337,7 +337,7 @@ void *nat64_thread_process_kernel_log_event(void *arg)
 	int err;
 	
 	kernel_log_event_rb = ring_buffer__new(nat64_get_kernel_log_event_rb_fd(), nat64_kernel_log_event_handler, NULL, NULL);
-	if (!nat64_kernel_log_event_handler) {
+	if (!kernel_log_event_rb) {
 		fprintf(stderr, "Failed to create ring buffer\n");
 		return NULL;
 	}

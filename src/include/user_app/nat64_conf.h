@@ -3,7 +3,7 @@
 
 #include <arpa/inet.h> 
 
-#include "../nat64_common.h"
+#include "nat64_common.h"
 #include "nat64_conf_opts.h"
 
 int nat64_get_cmd_conf(int argc, char **argv);
