@@ -7,7 +7,6 @@
 #include "nat64_ipaddr.h"
 
 // Define event types
-
 #define NAT64_LOG_LEVEL_ERROR	0
 #define NAT64_LOG_LEVEL_WARNING	1
 #define NAT64_LOG_LEVEL_INFO	2

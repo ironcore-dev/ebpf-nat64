@@ -4,7 +4,8 @@
 #include <bpf/bpf.h>
 #include <time.h>
 
-#include "include/user_app/nat64_addr_port_manage.h"
+#include "nat64_addr_port_manage.h"
+#include "nat64_user_log.h"
 
 
 const union ipv6_addr nat64_ipv6_prefix = {
@@ -45,7 +46,7 @@ static int populate_addr_port_range_map(void)
 
 		if (!i) {
 			nat64_ip_in_use = ipv4_addr; // record the first address as the starting point
-			printf("nat64_ip_in_use init to %u \n", nat64_ip_in_use);
+			NAT64_LOG_INFO("NAT IP is initialized", NAT64_LOG_IPV4(nat64_ip_in_use));
 		}
 
 		// Set the port range
@@ -55,17 +56,14 @@ static int populate_addr_port_range_map(void)
 		// Update the map
 		ret = bpf_map_update_elem(nat64_get_address_port_range_map_fd(), &ipv4_addr, &range, BPF_NOEXIST);
 		if (NAT64_FAILED(ret)) {
-			fprintf(stderr, "Failed to update nat64_address_port_range_map for IP %u.%u.%u.%u: %s\n",
-					(ipv4_addr >> 24) & 0xFF, (ipv4_addr >> 16) & 0xFF,
-					(ipv4_addr >> 8) & 0xFF, ipv4_addr & 0xFF,
-					strerror(errno));
+			NAT64_LOG_ERROR("Failed to initialize address port range map", NAT64_LOG_IPV4(ipv4_addr),
+							NAT64_LOG_MIN_PORT(range.port_range[0]), NAT64_LOG_MAX_PORT(range.port_range[1]),
+							NAT64_LOG_ERRNO(ret));
 			return NAT64_ERROR;
 		}
 
-		printf("Added NAT64 address %u.%u.%u.%u with port range %u-%u to map\n",
-				(ipv4_addr >> 24) & 0xFF, (ipv4_addr >> 16) & 0xFF,
-				(ipv4_addr >> 8) & 0xFF, ipv4_addr & 0xFF,
-				range.port_range[0], range.port_range[1]);
+		NAT64_LOG_DEBUG("Added one item to address port range map", NAT64_LOG_IPV4(ipv4_addr),
+						NAT64_LOG_MIN_PORT(range.port_range[0]), NAT64_LOG_MAX_PORT(range.port_range[1]));
 	}
 
 	return NAT64_OK;
@@ -81,13 +79,15 @@ static int init_addr_port_assignment_map(__u32 iface_index, __u32 addr, __u16 po
 	new_assignment.address_port_item.nat_port = port;
 	new_assignment.address_port_item.used = 0;  // Set to unused
 
-	printf("new_assignment.address_port_item.nat_addr %u, new_assignment.address_port_item.nat_port %u \n", new_assignment.address_port_item.nat_addr, new_assignment.address_port_item.nat_port);
-
 	ret = bpf_map_update_elem(nat64_get_address_assignment_map_fd(), &iface_index, &new_assignment, BPF_NOEXIST);
 	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Failed to add new address port assignment item for interface %d, ret: %d \n", iface_index, ret);
+		NAT64_LOG_ERROR("Failed to add new address port assignment item", NAT64_LOG_IFACE_INDEX(iface_index),
+						NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port), NAT64_LOG_ERRNO(ret));
 		return NAT64_ERROR;
 	}
+
+	NAT64_LOG_DEBUG("Added one item to address port assignment map", NAT64_LOG_IFACE_INDEX(iface_index),
+					NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port));
 
 	return NAT64_OK;
 }
@@ -109,11 +109,13 @@ static bool is_addr_port_in_use(__u32 addr, __u16 port) {
 
 	ret = bpf_map_lookup_elem_flags(nat64_get_address_port_in_use_map_fd(), &key, &dummy, 0);
 	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Failed to lookup address port in use map for addr %u.%u.%u.%u, port %u: %s, %d\n",
-				(addr >> 24) & 0xFF, (addr >> 16) & 0xFF,
-				(addr >> 8) & 0xFF, addr & 0xFF, port, strerror(errno), ret);
-		if (ret == -ENOENT)
+		if (ret == -ENOENT) {
+			NAT64_LOG_DEBUG("Cannot find an address-port combi in the usage map", NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port));
 			return false;
+		} else {
+			NAT64_LOG_ERROR("Failed to lookup address port in use map", NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port),
+							NAT64_LOG_ERRNO(ret));
+		}
 	}
 	return true;
 }
@@ -130,11 +132,12 @@ static int add_addr_port_to_in_use(__u32 addr, __u16 port) {
 
 	ret = bpf_map_update_elem(nat64_get_address_port_in_use_map_fd(), &key, &dummy, BPF_NOEXIST);
 	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Cannot add addr + port: addr %u.%u.%u.%u, port %u: %s, %d\n",
-				(addr >> 24) & 0xFF, (addr >> 16) & 0xFF,
-				(addr >> 8) & 0xFF, addr & 0xFF, port, strerror(errno), ret);
+		NAT64_LOG_ERROR("Failed to add address port to in use map", NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port),
+						NAT64_LOG_ERRNO(ret));
 		return NAT64_ERROR;
 	}
+
+	NAT64_LOG_DEBUG("Added one item to address port in use map", NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port));
 	
 	return NAT64_OK;
 }
@@ -163,9 +166,8 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 		// Get the port range for the current NAT64 IP
 		ret = bpf_map_lookup_elem(nat64_get_address_port_range_map_fd(), &nat64_ip_in_use, &range);
 		if (NAT64_FAILED(ret)) {
-			fprintf(stderr, "Failed to get port range for IP %u.%u.%u.%u\n",
-					(nat64_ip_in_use >> 24) & 0xFF, (nat64_ip_in_use >> 16) & 0xFF,
-					(nat64_ip_in_use >> 8) & 0xFF, nat64_ip_in_use & 0xFF);
+			NAT64_LOG_ERROR("Failed to get port range for current NAT64 IP", NAT64_LOG_IPV4(nat64_ip_in_use),
+							NAT64_LOG_ERRNO(ret));
 			return NAT64_ERROR;
 		}
 
@@ -195,7 +197,7 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 	} while (!found && nat64_ip_in_use != initial_ip);
 
 	if (!found) {
-		fprintf(stderr, "No available ports for any NAT64 IP address\n");
+		NAT64_LOG_WARNING("No available ports for any NAT64 IP address");
 		return NAT64_ERROR;
 	}
 
@@ -204,18 +206,15 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 	if (NAT64_FAILED(ret)) {
 		if (ret == -ENOENT) {
 			// If not found, create a new assignment
-			printf("nat64_init_address_port_assignment_map for iface %u, ip %u, port %u \n", iface_index, nat64_ip_in_use, chosen_port);
+			NAT64_LOG_DEBUG("Initialize a new address port assignment for interface", NAT64_LOG_IFACE_INDEX(iface_index));
 			ret = init_addr_port_assignment_map(iface_index, nat64_ip_in_use, chosen_port);
-			if (NAT64_FAILED(ret)) {
-				printf("Failed to nat64_init_address_port_assignment_map \n");
+			if (NAT64_FAILED(ret))
 				return NAT64_ERROR;
-			}
 
 			ret = add_addr_port_to_in_use(nat64_ip_in_use, chosen_port);
-			if (NAT64_FAILED(ret)) {
-				fprintf(stderr, "Failed to add address/port to in-use map: %s\n", strerror(errno));
+			if (NAT64_FAILED(ret))
 				return NAT64_ERROR;
-			}
+			
 			return NAT64_OK;
 		}
 
@@ -231,20 +230,17 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 	new_assignment.address_port_item.nat_port = chosen_port;
 	new_assignment.address_port_item.used = 0;  // Set to unused
 
-	printf("chosen: new_assignment.address_port_item.nat_addr %u, new_assignment.address_port_item.nat_port %u \n", new_assignment.address_port_item.nat_addr, new_assignment.address_port_item.nat_port);
-
 	ret = bpf_map_update_elem(nat64_get_address_assignment_map_fd(), &iface_index, &new_assignment, BPF_F_LOCK | BPF_ANY);
 	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Failed to update address port assignment map for interface %u\n", iface_index);
+		NAT64_LOG_ERROR("Failed to update address port assignment map for an interface", NAT64_LOG_IFACE_INDEX(iface_index),
+						NAT64_LOG_ERRNO(ret));
 		return NAT64_ERROR;
 	}
 
 	// Add the chosen address/port to the in-use map
 	ret = add_addr_port_to_in_use(nat64_ip_in_use, chosen_port);
-	if (ret != 0) {
-		fprintf(stderr, "Failed to add address/port to in-use map: %s\n", strerror(errno));
+	if (ret != 0)
 		return NAT64_ERROR;
-	}
 
 	// Move to the next NAT64 IP address for the next call
 	nat64_ip_in_use = get_next_nat64_ip(nat64_ip_in_use);
@@ -272,6 +268,8 @@ static int init_iface_addr_port_assignment(void) {
 static int compute_reverse_key_value(bool is_v6_v4_map, const struct nat64_table_tuple *key, const struct nat64_table_value *value,
 								struct nat64_table_tuple *reverse_key, struct nat64_table_value *reverse_value)
 {
+	int ret;
+
 	if (is_v6_v4_map) {
 		reverse_key->version = NAT64_IP_VERSION_V4; // IPv4
 		reverse_key->addr.v4.src_ip = key->addr.v6.dst_ip6.u6_addr32[3]; // Last 4 bytes of IPv6 dst
@@ -286,13 +284,11 @@ static int compute_reverse_key_value(bool is_v6_v4_map, const struct nat64_table
 			reverse_key->dst_port = value->port.nat64_port;
 		}
 
-		printf("get_reverse_key_value v6\n");
-		// print_addr_bytes(key);
-		// print_addr_bytes(reverse_key);
-		// if (NAT64_FAILED(bpf_map_lookup_elem(nat64_get_v4_v6_map_fd(), reverse_key, reverse_value))) {
-		// 	printf("Failed to lookup element in v4_v6 map\n");
-		// 	return NAT64_ERROR;
-		// }
+		ret = bpf_map_lookup_elem(nat64_get_v4_v6_map_fd(), reverse_key, reverse_value);
+		if (NAT64_FAILED(ret)) {
+			NAT64_LOG_ERROR("Failed to find a reverse mapping in v4_v6 map", NAT64_LOG_ERRNO(ret));
+			return NAT64_ERROR;
+		}
 
 	} else {
 		reverse_key->version = NAT64_IP_VERSION_V6; // IPv6
@@ -309,13 +305,13 @@ static int compute_reverse_key_value(bool is_v6_v4_map, const struct nat64_table
 			reverse_key->dst_port = key->src_port;
 		}
 
-		// print_addr_bytes(key);
-		// print_addr_bytes(reverse_key);
-		// if (NAT64_FAILED(bpf_map_lookup_elem(nat64_get_v6_v4_map_fd(), reverse_key, reverse_value))) {
-		// 	printf("Failed to lookup element in v6_v4 map\n");
-		// 	return NAT64_ERROR;
-		// }
+		ret = bpf_map_lookup_elem(nat64_get_v6_v4_map_fd(), reverse_key, reverse_value);
+		if (NAT64_FAILED(ret)) {
+			NAT64_LOG_ERROR("Failed to find a reverse mapping in v6_v4 map", NAT64_LOG_ERRNO(ret));
+			return NAT64_ERROR;
+		}
 	}
+
 	return NAT64_OK;
 }
 
@@ -331,13 +327,13 @@ static int remove_allocated_addr_port(const struct nat64_table_value *value)
 
 	ret = bpf_map_delete_elem(nat64_get_address_port_in_use_map_fd(), &key);
 	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Failed to lookup and delete address port in use map for addr %u.%u.%u.%u, port %u: %s\n",
-				(key.nat_addr >> 24) & 0xFF, (key.nat_addr >> 16) & 0xFF,
-				(key.nat_addr >> 8) & 0xFF, key.nat_addr & 0xFF, key.nat_port, strerror(errno));
+		NAT64_LOG_ERROR("Failed to lookup and delete address port in use map", NAT64_LOG_IPV4(key.nat_addr),
+						NAT64_LOG_PORT(key.nat_port), NAT64_LOG_ERRNO(ret));
 		return NAT64_ERROR;
 	}
 
-	printf("Removed used allocated addr port \n");
+	NAT64_LOG_DEBUG("Removed used allocated address-port combination", NAT64_LOG_IPV4(key.nat_addr),
+					NAT64_LOG_PORT(key.nat_port));
 
 	return NAT64_OK;
 }
@@ -355,7 +351,7 @@ static void cleanup_expired_entries(int map_fd) {
 
 			if ((__u64)(current_time - value.last_seen) > NAT64_ASSIGNMET_LIVENESS_IN_NANO) {
 				if (NAT64_FAILED(compute_reverse_key_value(is_v6_v4_map, &next_key, &value, &reverse_key, &reverse_value))) {
-					printf("Cannot get the reverse key and value \n");
+					NAT64_LOG_ERROR("Failed to compute reverse key and value");
 					bpf_map_delete_elem(map_fd, &next_key);
 					remove_allocated_addr_port(&value);
 					continue;
@@ -365,7 +361,6 @@ static void cleanup_expired_entries(int map_fd) {
 					bpf_map_delete_elem(map_fd, &next_key);
 					bpf_map_delete_elem(reverse_map_fd, &reverse_key);
 					remove_allocated_addr_port(&value);
-					printf("Removed expired entry from maps\n");
 				}
 			}
 		}
@@ -377,12 +372,12 @@ static void cleanup_expired_entries(int map_fd) {
 int nat64_addr_port_manage_init(void)
 {
 	if (NAT64_FAILED(populate_addr_port_range_map())) {
-		fprintf(stderr, "Failed to populate address port range map\n");
+		NAT64_LOG_ERROR("Failed to populate address port range map");
 		return NAT64_ERROR;
 	}
 
 	if (NAT64_FAILED(init_iface_addr_port_assignment())) {
-		fprintf(stderr, "Failed to init address port assignment \n");
+		NAT64_LOG_ERROR("Failed to initialize address port assignment");
 		return NAT64_ERROR;
 	}
 
@@ -394,35 +389,33 @@ static int nat64_new_flow_event_handler(void *ctx, void *data, size_t data_sz)
 	const struct nat64_ipv6_new_flow_event *e = data;
 	int ret;
 
-	printf("New IPv6 flow event received for interface %u\n", e->iface_index);
-
 	ret = compute_and_update_addr_port_assignment(e->iface_index);
-	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Failed to compute address port assignment for interface %u\n", e->iface_index);
-	}
+	if (NAT64_FAILED(ret))
+		NAT64_LOG_ERROR("Failed to compute address port assignment for interface", NAT64_LOG_IFACE_INDEX(e->iface_index));
+
+	NAT64_LOG_DEBUG("New IPv6 flow event received for interface and properly processed", NAT64_LOG_IFACE_INDEX(e->iface_index));
 
 	return NAT64_OK;
 }
 
-void *nat64_thread_process_new_flow_event(void *arg)
+void *nat64_thread_process_new_flow_event(void *arg  __attribute__((unused)))
 {
-	int err;
+	int ret;
 	
 
 	new_flow_event_rb = ring_buffer__new(nat64_get_new_flow_event_rb_fd(), nat64_new_flow_event_handler, NULL, NULL);
 	if (!new_flow_event_rb) {
-		fprintf(stderr, "Failed to create ring buffer\n");
+		NAT64_LOG_ERROR("Failed to create ring buffer");
 		return NULL;
 	}
 
 	while (addr_port_manage_running) {
-		err = ring_buffer__poll(new_flow_event_rb, 100 /* timeout, ms */);
-		if (err == -EINTR) {
-			err = 0;
+		ret = ring_buffer__poll(new_flow_event_rb, 100 /* timeout, ms */);
+		if (ret == -EINTR) {
 			break;
 		}
-		if (err < 0) {
-			fprintf(stderr, "Error polling ring buffer: %d\n", err);
+		if (NAT64_FAILED(ret)) {
+			NAT64_LOG_ERROR("Error polling ring buffer", NAT64_LOG_ERRNO(ret));
 			break;
 		}
 	}
@@ -432,7 +425,7 @@ void *nat64_thread_process_new_flow_event(void *arg)
 }
 
 
-void* nat64_thread_search_and_remove_expired_entries(void* arg)
+void* nat64_thread_search_and_remove_expired_entries(void* arg  __attribute__((unused)))
 {
 	while (addr_port_manage_running) {
 		cleanup_expired_entries(nat64_get_v6_v4_map_fd());

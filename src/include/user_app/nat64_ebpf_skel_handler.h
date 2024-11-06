@@ -28,7 +28,7 @@ int nat64_destroy_prog_maps(void);
 void nat64_destroy_prog_skeleton(void);
 
 int nat64_load_prog_onto_ifaces(void);
-int nat64_unload_prog_from_ifaces(void);
+void nat64_unload_prog_from_ifaces(void);
 
 // Getter functions for map file descriptors
 NAT64_MAP_FACTORY(NAT64_MAP_FD_GETTER)

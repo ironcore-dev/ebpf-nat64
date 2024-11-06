@@ -3,7 +3,7 @@
 
 
 #include "nat64_conf.h"
-#include "../nat64_common.h"
+#include "nat64_common.h"
 #include "ebpf_nat64.skel.h"
 #include "nat64_ebpf_skel_handler.h"
 #include "nat64_addr_port_manage.h"

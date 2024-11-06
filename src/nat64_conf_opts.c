@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "include/nat64_common.h"
-#include "include/user_app/nat64_conf_opts.h"
-#include "include/nat64_log_common.h"
+#include "nat64_common.h"
+#include "nat64_conf_opts.h"
+#include "nat64_log_common.h"
+#include "nat64_user_log.h"
 
 #define OPT_LOG_LEVEL	"log-level"
 #define OPT_ADDR_PORT_POOL "addr-port-pool"
@@ -91,7 +92,7 @@ int nat64_parse_args(int argc, char **argv)
 		case OPT_LOG_LEVEL_NUM:
 			log_level = get_log_level_from_name(optarg);
 			if (NAT64_FAILED(log_level)) {
-				printf("Invalid log level: %s\n", optarg);
+				NAT64_LOG_ERROR("Invalid log level", NAT64_LOG_OPT_STR(optarg));
 				nat64_print_usage(prgname);
 				return NAT64_ERROR;
 			}

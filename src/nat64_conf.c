@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <net/if.h>
 
-#include "include/user_app/nat64_conf.h"
+#include "nat64_conf.h"
+#include "nat64_user_log.h"
+
 
 
 /*NAT64 configuration variables*/
@@ -42,7 +44,7 @@ static int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
 
 	if (token != NULL) {
 		// More than three combinations, return error
-		fprintf(stderr, "Error: More than %d addr:port combinations provided.\n", NAT64_ADDR_PORT_POOL_SIZE);
+		NAT64_LOG_ERROR("More than allowed addr:port combinations provided", NAT64_LOG_VALUE(NAT64_ADDR_PORT_POOL_SIZE));
 		return NAT64_ERROR;
 	}
 	return NAT64_OK;
@@ -70,7 +72,7 @@ static int parse_attach_iface_str(const char *nat64_attach_iface_str)
 	}
 
 	if (token != NULL) {
-		fprintf(stderr, "Error: More than %d interfaces provided \n", NAT64_ATTACH_IFACE_MAX_CNT);
+		NAT64_LOG_ERROR("More than allowed interfaces provided", NAT64_LOG_VALUE(NAT64_ATTACH_IFACE_MAX_CNT));
 		free(iface_str);
 		return NAT64_ERROR;
 	}
@@ -84,14 +86,14 @@ static int convert_parsed_args(void)
 
 	ret = parse_addr_port_pool_str(nat64_get_addr_port_pool_str());
 	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Error: More than %d addr:port combinations provided.\n", NAT64_ADDR_PORT_POOL_SIZE);
-		return NAT64_ERROR; // Exit if parsing addr:port pool fails
+		NAT64_LOG_ERROR("Failed to parse addr:port pool string");
+		return NAT64_ERROR;
 	}
 
 	ret = parse_attach_iface_str(nat64_get_attach_iface_str());
 	if (NAT64_FAILED(ret)) {
-		fprintf(stderr, "Error: More than %d attaching interface provided.\n", NAT64_ATTACH_IFACE_MAX_CNT);
-		return NAT64_ERROR; // Exit if parsing addr:port pool fails
+		NAT64_LOG_ERROR("Failed to parse attaching interface string");
+		return NAT64_ERROR;
 	}
 
 	return NAT64_OK;
@@ -118,15 +120,45 @@ const int* nat64_get_parsed_attach_iface_index(void)
 	return attach_iface_index;
 }
 
+
+static void print_addr_port_pool(void)
+{
+	int addr_port_item_cnt = nat64_get_parsed_addr_port_cnt();
+	const struct nat64_address_ports_range *nat64_addr_port_pool = nat64_get_parsed_addr_port_pool();
+
+	for (int i = 0; i < addr_port_item_cnt; i++) {
+		NAT64_LOG_INFO("Added a combination of a nat address and a port range", NAT64_LOG_IPV4(nat64_addr_port_pool[i].addr),
+						NAT64_LOG_MIN_PORT(nat64_addr_port_pool[i].port_range[0]),
+						NAT64_LOG_MAX_PORT(nat64_addr_port_pool[i].port_range[1]));
+
+	}
+}
+
+
+static void print_iface_indexes(void)
+{
+	int iface_cnt = nat64_get_parsed_attach_iface_cnt();
+	const int *attach_iface_index = nat64_get_parsed_attach_iface_index();
+	
+	for (int i = 0; i < iface_cnt; i++)
+		NAT64_LOG_INFO("Added an interface index", NAT64_LOG_IFACE_INDEX(attach_iface_index[i]));
+}
+
+static void print_parsed_results(void)
+{
+	print_addr_port_pool();
+	print_iface_indexes();
+}
+
 int nat64_get_cmd_conf(int argc, char **argv)
 {
 	if (NAT64_FAILED(nat64_parse_args(argc, argv)))
 		return NAT64_ERROR;
 
-	if (NAT64_FAILED(convert_parsed_args())) {
-		printf("Failed to convert parsed cmd args \n");
+	if (NAT64_FAILED(convert_parsed_args()))
 		return NAT64_ERROR;
-	}
+
+	print_parsed_results();
 
 	return NAT64_OK;
 }

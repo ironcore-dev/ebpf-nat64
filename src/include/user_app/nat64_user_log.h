@@ -1,7 +1,7 @@
 #ifndef __NAT64_USER_LOG_H
 #define __NAT64_USER_LOG_H
 
-#include "../nat64_log_common.h"
+#include "nat64_log_common.h"
 
 #define NAT64_LOG_SOURCE_KERNEL	0
 #define NAT64_LOG_SOURCE_USER	1
@@ -21,7 +21,9 @@
 #define NAT64_LOG_SRC_IPV6(VALUE) NAT64_LOG_ADD_IPV6("src_ipv6", VALUE)
 #define NAT64_LOG_DST_IPV6(VALUE) NAT64_LOG_ADD_IPV6("dst_ipv6", VALUE)
 
-#define NAT64_LOG_PORT(VALUE) NAT64_LOG_ADD_INT("port", VALUE)
+#define NAT64_LOG_PORT(VALUE) NAT64_LOG_ADD_UINT("port", VALUE)
+#define NAT64_LOG_MIN_PORT(VALUE) NAT64_LOG_ADD_UINT("min_port", VALUE)
+#define NAT64_LOG_MAX_PORT(VALUE) NAT64_LOG_ADD_UINT("max_port", VALUE)
 #define NAT64_LOG_L4_PROTO_PORT(VALUE) NAT64_LOG_ADD_UINT("l4_proto_port", VALUE)
 #define NAT64_LOG_L4_PROTO_SRC_PORT(VALUE) NAT64_LOG_ADD_UINT("l4_proto_src_port", VALUE)
 #define NAT64_LOG_L4_PROTO_DST_PORT(VALUE) NAT64_LOG_ADD_UINT("l4_proto_dst_port", VALUE)
@@ -29,6 +31,16 @@
 #define NAT64_LOG_ICMPV6_TYPE(VALUE) NAT64_LOG_ADD_UINT("icmpv6_type", VALUE)
 #define NAT64_LOG_ICMP_IDENTIFIER(VALUE) NAT64_LOG_ADD_UINT("icmp_identifier", VALUE)
 #define NAT64_LOG_ICMPV6_IDENTIFIER(VALUE) NAT64_LOG_ADD_UINT("icmpv6_identifier", VALUE)
+
+#define NAT64_LOG_IFACE_INDEX(VALUE) NAT64_LOG_ADD_UINT("iface_index", VALUE)
+#define NAT64_LOG_MAP_NAME(VALUE) NAT64_LOG_ADD_STR("map_name", VALUE)
+
+#define NAT64_LOG_ERRNONUM(VALUE) NAT64_LOG_ADD_INT("errno", VALUE)
+#define NAT64_LOG_ERRSTR(VALUE) NAT64_LOG_ADD_STR("errstr", VALUE)
+#define NAT64_LOG_ERRNO(VALUE) NAT64_LOG_ERRNONUM(errno), NAT64_LOG_ERRSTR(strerror(errno))
+
+#define NAT64_LOG_OPT_STR(VALUE) NAT64_LOG_ADD_STR("opt_str", VALUE)
+
 
 void nat64_macro_log(unsigned int level, unsigned int log_source,
 			 const char *message, ...);
