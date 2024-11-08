@@ -63,7 +63,7 @@ static const char *const log_levels[] = {
 };
 
 static bool log_json = false;
-static uint8_t _log_level = NAT64_LOG_LEVEL_DEBUG;
+// static uint16_t _log_level = NAT64_LOG_LEVEL_ERROR;
 static const char *const *log_formatter = log_formatter_text;
 static const char *const *log_sources = log_sources_text;
 
@@ -158,6 +158,10 @@ void nat64_macro_log(unsigned int level, unsigned int log_source,
 			 const char *message, ...)
 {
 
+	if (level > nat64_get_log_level()) {
+		return;
+	}
+
 	char timestamp[TIMESTAMP_MAXSIZE];
 	va_list args;
 	FILE *f;
@@ -225,9 +229,9 @@ parse_error:
 }
 
 static void nat64_kern_log_print(unsigned int level, unsigned int log_source,
-						const char *message, void **args)
+						const char *message, const void **args)
 {
-	if (level > _log_level) {
+	if (level > nat64_get_log_level()) {
 		return;
 	}
 
@@ -250,10 +254,10 @@ static void nat64_kern_log_print(unsigned int level, unsigned int log_source,
 			log_levels[level], log_sources[log_source],
 			escape_message(message, escaped, sizeof(escaped)));
 
-	for (void **curr = args; *curr != NULL; curr += 3) {
+	for (const void **curr = args; *curr != NULL; curr += 3) {
 		const char *key = (const char *)*curr;
 		uint16_t type = *(uint16_t *)*(curr + 1);
-		void *value = *(curr + 2);
+		const void *value = *(curr + 2);
 
 		switch(type) {
 			case NAT64_LOG_TYPE_STR:
@@ -292,7 +296,7 @@ parse_error:
 static int nat64_kernel_log_event_handler(void *ctx, void *data, size_t data_sz)
 {
 	const struct nat64_kernel_log_event *log_event = data;
-	void *log_args[NAT64_LOG_MAX_ENTRIES * 3] = {0};  // 3 args per entry (key, type, value)
+	const void *log_args[NAT64_LOG_MAX_ENTRIES * 3] = {0};  // 3 args per entry (key, type, value)
 	int arg_count = 0;
 	
 	// Build arguments array from log_event entries
@@ -357,7 +361,6 @@ void *nat64_thread_process_kernel_log_event(void *arg)
 	ring_buffer__free(kernel_log_event_rb);
 	return NULL;
 }
-
 
 void nat64_kernel_log_printer_loop_exit(void)
 {

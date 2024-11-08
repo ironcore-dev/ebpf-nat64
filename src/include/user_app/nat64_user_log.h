@@ -57,5 +57,6 @@ void nat64_macro_log(unsigned int level, unsigned int log_source,
 
 void nat64_kernel_log_printer_loop_exit(void);
 void *nat64_thread_process_kernel_log_event(void *arg);
+void nat64_set_log_level(uint16_t log_level);
 
 #endif

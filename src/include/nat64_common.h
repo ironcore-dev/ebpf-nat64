@@ -31,6 +31,8 @@
 
 #define NAT64_ADDR_PORT_ASSIGNMENT_FETCH_RETRY 3
 
+#define NAT64_KERNEL_CONFIG_MAP_KEY 0
+
 
 enum nat64_ip_version {
 	NAT64_IP_VERSION_NON,
@@ -45,6 +47,10 @@ enum nat64_flow_direction {
 
 struct nat64_ipv6_new_flow_event {
 	__u32 iface_index;
+};
+
+struct nat64_kernel_config {
+	__u8 log_level;
 };
 
 

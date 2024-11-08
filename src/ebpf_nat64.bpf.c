@@ -12,7 +12,6 @@
 #include <bpf/bpf_helpers.h>
 
 #include "nat64_kern.h"
-// #include "nat64_kern_log.h"
 
 
 
@@ -56,6 +55,7 @@ struct {
 // 	}
 // }
 
+static __u8 flag;
 
 __attribute__((__always_inline__)) static inline int
 process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
@@ -144,7 +144,6 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 __attribute__((__always_inline__)) static inline int
 nat64_parse_l2(struct xdp_md *ctx)
 {
-
 	void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
 	__u32 iface_index = ctx->ingress_ifindex; // Get the interface index from the context
@@ -167,6 +166,7 @@ nat64_parse_l2(struct xdp_md *ctx)
 SEC("xdp")
 int xdp_nat64(struct xdp_md *ctx)
 {
+	load_kernel_config();
 	if (NAT64_FAILED(nat64_parse_l2(ctx)))
 		return XDP_DROP;
 	else

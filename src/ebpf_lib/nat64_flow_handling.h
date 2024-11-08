@@ -68,7 +68,6 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 		}
 		case NAT64_IP_VERSION_V6: {
 			struct ipv6hdr *ipv6 = (struct ipv6hdr *)ip_hdr;
-			// ipv6_hdr->daddr.in6_u.u6_addr32
 			memcpy(flow_sig->addr.v6.src_ip6.u6_addr32, &ipv6->saddr.in6_u.u6_addr32, sizeof(flow_sig->addr.v6.src_ip6));
 			memcpy(flow_sig->addr.v6.dst_ip6.u6_addr32, &ipv6->daddr.in6_u.u6_addr32, sizeof(flow_sig->addr.v6.dst_ip6));
 			break;
@@ -119,7 +118,7 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 						NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig->src_port)), NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig->dst_port)));
 	}
 
-	return NAT64_OK; // Success
+	return NAT64_OK;
 }
 
 __attribute__((__always_inline__)) static inline int
