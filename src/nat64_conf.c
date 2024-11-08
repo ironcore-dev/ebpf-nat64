@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <net/if.h>
 
+#include <bpf/bpf.h>
+
 #include "nat64_conf.h"
 #include "nat64_user_log.h"
+#include "nat64_ebpf_skel_handler.h"
 
 
 
@@ -134,7 +137,6 @@ static void print_addr_port_pool(void)
 	}
 }
 
-
 static void print_iface_indexes(void)
 {
 	int iface_cnt = nat64_get_parsed_attach_iface_cnt();
@@ -159,6 +161,24 @@ int nat64_get_cmd_conf(int argc, char **argv)
 		return NAT64_ERROR;
 
 	print_parsed_results();
+
+	return NAT64_OK;
+}
+
+int nat64_set_kernel_config(void)
+{
+	__u16 key = NAT64_KERNEL_CONFIG_MAP_KEY;
+	int ret;
+
+	struct nat64_kernel_config config = {
+		.log_level = nat64_get_log_level(),
+	};
+
+	ret = bpf_map_update_elem(nat64_get_kernel_config_map_fd(), &key, &config, BPF_NOEXIST);
+	if (NAT64_FAILED(ret)) {
+		NAT64_LOG_ERROR("Failed to load kernel config", NAT64_LOG_ERRNO(ret));
+		return NAT64_ERROR;
+	}
 
 	return NAT64_OK;
 }

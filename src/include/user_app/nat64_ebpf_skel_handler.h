@@ -13,6 +13,7 @@
 	GENERATOR(v4_v6_map)	\
 	GENERATOR(new_flow_event_rb) \
 	GENERATOR(kernel_log_event_rb) \
+	GENERATOR(kernel_config_map) \
 
 
 #define NAT64_MAP_FD_GETTER(name) int nat64_get_##name##_fd(void);
@@ -24,7 +25,7 @@ int nat64_initialize_prog_map_fds(void);
 int nat64_attach_prog_skeleton_to_iface(int iface_index, unsigned int xdp_flags);
 int nat64_detach_prog_skeleton_from_iface(int iface_index, unsigned int xdp_flags);
 
-int nat64_destroy_prog_maps(void);
+void nat64_destroy_prog_maps(void);
 void nat64_destroy_prog_skeleton(void);
 
 int nat64_load_prog_onto_ifaces(void);

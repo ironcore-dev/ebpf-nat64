@@ -13,4 +13,6 @@ int nat64_get_parsed_attach_iface_cnt(void);
 const struct nat64_address_ports_range* nat64_get_parsed_addr_port_pool(void);
 const int* nat64_get_parsed_attach_iface_index(void);
 
+int nat64_set_kernel_config(void);
+
 #endif

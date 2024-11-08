@@ -3,8 +3,10 @@
 
 #include <linux/in.h>
 
-#include "include/nat64_common.h"
+#include "nat64_common.h"
+#include "nat64_kern_config.h"
 #include "nat64_kern_log.h"
+
 #define assert_len(target, end)  \
 	if ((void *)(target + 1) > end) { \
 		NAT64_LOG_ERROR("Invalid packet length"); \

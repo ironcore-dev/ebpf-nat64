@@ -83,7 +83,7 @@ int nat64_initialize_prog_map_fds(void) {
 }
 
 
-int nat64_destroy_prog_maps(void)
+void nat64_destroy_prog_maps(void)
 {
 
 	char pin_path[256];

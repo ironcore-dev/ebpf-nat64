@@ -65,6 +65,12 @@ int main(int argc, char **argv){
 		goto delete_prog;
 	}
 
+	ret = nat64_set_kernel_config();
+	if (NAT64_FAILED(ret)) {
+		NAT64_LOG_ERROR("Failed to load kernel config");
+		goto delete_prog;
+	}
+
 	ret = nat64_create_running_threads();
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to create running threads");
@@ -84,7 +90,6 @@ int main(int argc, char **argv){
 
 stop_running_threads:
 	nat64_stop_running_threads();
-detach_prog:
 	nat64_unload_prog_from_ifaces();
 delete_prog:
 	nat64_destroy_prog_maps();

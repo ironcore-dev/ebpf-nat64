@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <arpa/inet.h>
 
 #include "nat64_common.h"
 #include "nat64_conf_opts.h"
@@ -18,7 +18,7 @@ static const char short_options[] = "d" /* debug */
 				"h";
 
 static int debug_mode = 0;
-static int log_level = 0;
+static uint16_t log_level = 0;
 static int enable_skb_mode = 0;
 static char nat64_addr_port_pool_str[256] = {0};
 static char nat64_attach_iface_str[256] = {0};
@@ -136,7 +136,7 @@ bool nat64_get_skb_mode(void)
 	return enable_skb_mode;
 }
 
-int nat64_get_log_level(void)
+uint16_t nat64_get_log_level(void)
 {
 	return log_level;
 }

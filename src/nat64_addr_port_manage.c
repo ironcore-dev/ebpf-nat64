@@ -396,7 +396,7 @@ int nat64_addr_port_manage_init(void)
 	return NAT64_OK;
 }
 
-static int nat64_new_flow_event_handler(void *ctx, void *data, size_t data_sz)
+static int nat64_new_flow_event_handler(void *ctx __attribute__((unused)), void *data, size_t data_sz __attribute__((unused)))
 {
 	const struct nat64_ipv6_new_flow_event *e = data;
 	int ret;
