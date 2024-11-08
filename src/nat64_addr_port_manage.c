@@ -3,6 +3,7 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include <time.h>
+#include <pthread.h>
 
 #include "nat64_addr_port_manage.h"
 #include "nat64_user_log.h"
@@ -16,9 +17,11 @@ const union ipv6_addr nat64_ipv6_mask = {
 };
 
 
+
 static __u32 nat64_ip_in_use;
 static struct ring_buffer *new_flow_event_rb = NULL;
 static volatile bool addr_port_manage_running = true;
+static pthread_mutex_t addr_port_in_use_map_mutex;
 
 
 /**Helper functions used in this file**/
@@ -107,7 +110,10 @@ static bool is_addr_port_in_use(__u32 addr, __u16 port) {
 	key.nat_addr = addr;
 	key.nat_port = port;
 
+	pthread_mutex_lock(&addr_port_in_use_map_mutex);
 	ret = bpf_map_lookup_elem_flags(nat64_get_address_port_in_use_map_fd(), &key, &dummy, 0);
+	pthread_mutex_unlock(&addr_port_in_use_map_mutex);
+	
 	if (NAT64_FAILED(ret)) {
 		if (ret == -ENOENT) {
 			NAT64_LOG_DEBUG("Cannot find an address-port combi in the usage map", NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port));
@@ -130,7 +136,10 @@ static int add_addr_port_to_in_use(__u32 addr, __u16 port) {
 	key.nat_addr = addr;
 	key.nat_port = port;
 
+	pthread_mutex_lock(&addr_port_in_use_map_mutex);
 	ret = bpf_map_update_elem(nat64_get_address_port_in_use_map_fd(), &key, &dummy, BPF_NOEXIST);
+	pthread_mutex_unlock(&addr_port_in_use_map_mutex);
+
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to add address port to in use map", NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port),
 						NAT64_LOG_ERRNO(ret));
@@ -325,7 +334,10 @@ static int remove_allocated_addr_port(const struct nat64_table_value *value)
 	key.nat_addr = value->addr.nat64_v4_addr;
 	key.nat_port = bpf_ntohs(value->port.nat64_port);
 
+	pthread_mutex_lock(&addr_port_in_use_map_mutex);
 	ret = bpf_map_delete_elem(nat64_get_address_port_in_use_map_fd(), &key);
+	pthread_mutex_unlock(&addr_port_in_use_map_mutex);
+	
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to lookup and delete address port in use map", NAT64_LOG_IPV4(key.nat_addr),
 						NAT64_LOG_PORT(key.nat_port), NAT64_LOG_ERRNO(ret));
