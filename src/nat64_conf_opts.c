@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #include "nat64_common.h"
 #include "nat64_conf_opts.h"

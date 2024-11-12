@@ -1,5 +1,5 @@
-#ifndef __NAT64_IPV6_ADDR_CHECK_H
-#define __NAT64_IPV6_ADDR_CHECK_H
+#ifndef NAT64_IPV6_ADDR_CHECK_H
+#define NAT64_IPV6_ADDR_CHECK_H
 
 #include "../include/nat64_ipaddr.h"
 
@@ -11,14 +11,14 @@ const union ipv6_addr nat64_ipv6_mask = {
 };
 
 
-__attribute__((__always_inline__)) static inline bool
+static __always_inline bool
 masked_ipv6_match(const union ipv6_addr *l, const union ipv6_addr *r, const union ipv6_addr *mask)
 {
 	return (l->_prefix & mask->_prefix) == (r->_prefix & mask->_prefix)
 		&& (l->_suffix & mask->_suffix) == (r->_suffix & mask->_suffix);
 }
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 is_nat64_ipv6_address(struct ipv6hdr *ipv6)
 {
 	const union ipv6_addr *ipv6_dst_addr = (union ipv6_addr *)(&ipv6->daddr);

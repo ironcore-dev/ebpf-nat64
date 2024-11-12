@@ -1,5 +1,5 @@
-#ifndef __NAT64_EBPF_SKEL_HANDLER_H
-#define __NAT64_EBPF_SKEL_HANDLER_H
+#ifndef NAT64_EBPF_SKEL_HANDLER_H
+#define NAT64_EBPF_SKEL_HANDLER_H
 
 #include "ebpf_nat64.skel.h"
 

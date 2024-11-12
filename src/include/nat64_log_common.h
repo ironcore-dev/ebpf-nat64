@@ -1,5 +1,5 @@
-#ifndef __NAT64_LOG_COMMON_H
-#define __NAT64_LOG_COMMON_H
+#ifndef NAT64_LOG_COMMON_H
+#define NAT64_LOG_COMMON_H
 
 
 #include <bpf/bpf_endian.h>

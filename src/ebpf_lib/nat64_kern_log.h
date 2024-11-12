@@ -1,5 +1,5 @@
-#ifndef __NAT64_KERN_LOG_H
-#define __NAT64_KERN_LOG_H
+#ifndef NAT64_KERN_LOG_H
+#define NAT64_KERN_LOG_H
 
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
@@ -105,7 +105,8 @@ struct {
 
 #define NAT64_LOG_IFACE_INDEX(VALUE) NAT64_LOG_ADD_UINT("iface_index", VALUE)
 #define NAT64_LOG_ERRNO(VALUE) NAT64_LOG_ADD_INT("errno", VALUE)
-
+#define NAT64_LOG_TCP_STATE(VALUE) NAT64_LOG_ADD_UINT("tcp_state", VALUE)
+#define NAT64_LOG_TCP_FLAGS(VALUE) NAT64_LOG_ADD_UINT("tcp_flags", VALUE)
 
 #define NAT64_LOG_ARGS(...) __VA_ARGS__
 

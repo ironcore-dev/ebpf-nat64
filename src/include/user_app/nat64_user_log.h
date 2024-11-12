@@ -1,5 +1,5 @@
-#ifndef __NAT64_USER_LOG_H
-#define __NAT64_USER_LOG_H
+#ifndef NAT64_USER_LOG_H
+#define NAT64_USER_LOG_H
 
 #include "nat64_log_common.h"
 

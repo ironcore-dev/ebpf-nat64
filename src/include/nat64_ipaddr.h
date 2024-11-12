@@ -1,5 +1,5 @@
-#ifndef __NAT64_IPADDR_H
-#define __NAT64_IPADDR_H
+#ifndef NAT64_IPADDR_H
+#define NAT64_IPADDR_H
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -8,6 +8,8 @@
 #include <linux/ip.h>
 #include <bpf/bpf_endian.h>
 
+
+#define NAT64_IPV6_ADDR_LENGTH 16
 
 union ipv6_addr {
 	__u8 u6_addr8[16];

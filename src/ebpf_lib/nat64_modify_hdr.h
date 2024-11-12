@@ -1,5 +1,5 @@
-#ifndef __NAT64_MODIFY_HDR_H
-#define __NAT64_MODIFY_HDR_H
+#ifndef NAT64_MODIFY_HDR_H
+#define NAT64_MODIFY_HDR_H
 
 #include <linux/in.h>
 #include <linux/if_ether.h>
@@ -159,7 +159,7 @@ modify_l4_proto_hdr(struct xdp_md *ctx,
 	return NAT64_OK;
 }
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 convert_v4_pkt_to_v6_pkt(struct xdp_md *ctx, const struct nat64_table_value *flow_value,
 						struct ethhdr *eth_hdr, struct iphdr *ipv4_hdr)
 {
@@ -214,7 +214,7 @@ convert_v4_pkt_to_v6_pkt(struct xdp_md *ctx, const struct nat64_table_value *flo
 	return NAT64_OK;
 }
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 convert_v6_pkt_to_v4_pkt(struct xdp_md *ctx, const struct nat64_table_value *flow_value,
 						struct ethhdr *eth_hdr, struct ipv6hdr *ipv6_hdr)
 {
