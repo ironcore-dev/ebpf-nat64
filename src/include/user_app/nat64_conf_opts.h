@@ -1,6 +1,6 @@
 
-#ifndef __NAT64_CONF_OPTS_H
-#define __NAT64_CONF_OPTS_H
+#ifndef NAT64_CONF_OPTS_H
+#define NAT64_CONF_OPTS_H
 
 #include <getopt.h>
 #include <unistd.h>

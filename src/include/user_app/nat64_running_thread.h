@@ -1,5 +1,5 @@
-#ifndef __NAT64_RUNNING_THREAD_H
-#define __NAT64_RUNNING_THREAD_H
+#ifndef NAT64_RUNNING_THREAD_H
+#define NAT64_RUNNING_THREAD_H
 
 #include <pthread.h>
 

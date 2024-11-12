@@ -39,7 +39,7 @@ static const char *const log_formatter_text[] = {
 	/* endline */ "\n",
 	/* str     */ ", %s: %s",
 	/* int     */ ", %s: %d",
-	/* uint    */ ", %s: %u",
+	/* uint    */ ", %s: %d",
 	/* ipv4    */ ", %s: %u.%u.%u.%u",
 	// /* ptr     */ ", %s: %p",
 };
@@ -237,12 +237,12 @@ static void nat64_kern_log_print(unsigned int level, unsigned int log_source,
 
 	char timestamp[TIMESTAMP_MAXSIZE];
 	FILE *f;
-	char escaped[3072];  // worst-case: 512 encoded characters (\u1234)
+	char escaped[3072];  // worst-case: 512 encoded characters
 	const char *str_value;
 	uint32_t ipv4_value;
 
 	if (NAT64_FAILED(get_timestamp(timestamp)))
-		memcpy(timestamp, TIMESTAMP_NUL, TIMESTAMP_MAXSIZE);  // including \0
+		memcpy(timestamp, TIMESTAMP_NUL, TIMESTAMP_MAXSIZE);
 
 	f = stdout;
 	flockfile(f);

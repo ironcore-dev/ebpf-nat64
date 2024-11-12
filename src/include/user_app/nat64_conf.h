@@ -1,5 +1,5 @@
-#ifndef __NAT64_CONF_H
-#define __NAT64_CONF_H
+#ifndef NAT64_CONF_H
+#define NAT64_CONF_H
 
 #include <arpa/inet.h> 
 

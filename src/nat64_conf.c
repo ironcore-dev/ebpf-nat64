@@ -5,6 +5,8 @@
 
 #include "nat64_conf.h"
 #include "nat64_user_log.h"
+#include "nat64_addr_port_assignment.h"
+
 #include "nat64_ebpf_skel_handler.h"
 
 

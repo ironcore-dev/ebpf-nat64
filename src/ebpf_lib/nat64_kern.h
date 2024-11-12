@@ -1,5 +1,5 @@
-#ifndef __NAT64_KERN_H
-#define __NAT64_KERN_H
+#ifndef NAT64_KERN_H
+#define NAT64_KERN_H
 
 #include <linux/in.h>
 
@@ -21,6 +21,7 @@
 #include "nat64_modify_hdr.h"
 #include "nat64_ipv6_addr_check.h"
 #include "nat64_flow_handling.h"
+#include "nat64_tcp_state_tracking.h"
 
 #define NAT64_ICMP_HDR_MAX_LENGTH 128 //bytes
 

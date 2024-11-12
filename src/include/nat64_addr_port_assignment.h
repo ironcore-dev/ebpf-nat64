@@ -1,5 +1,5 @@
-#ifndef __NAT64_ADDR_PORT_ASSIGNMENT_H
-#define __NAT64_ADDR_PORT_ASSIGNMENT_H
+#ifndef NAT64_ADDR_PORT_ASSIGNMENT_H
+#define NAT64_ADDR_PORT_ASSIGNMENT_H
 
 
 #include <bpf/bpf_endian.h>

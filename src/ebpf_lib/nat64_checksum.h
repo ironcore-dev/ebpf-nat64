@@ -1,5 +1,5 @@
-#ifndef __NAT64_CHECKSUM_H
-#define __NAT64_CHECKSUM_H
+#ifndef NAT64_CHECKSUM_H
+#define NAT64_CHECKSUM_H
 
 
 #include <linux/ipv6.h>

@@ -1,10 +1,13 @@
-#ifndef _NAT64_FLOW_HANDLING_H
-#define _NAT64_FLOW_HANDLING_H
+#ifndef NAT64_FLOW_HANDLING_H
+#define NAT64_FLOW_HANDLING_H
 
 #include <bpf/bpf_helpers.h>
 
 #include "nat64_kern.h"
 #include "nat64_kern_log.h"
+#include "nat64_table_tuple.h"
+#include "nat64_addr_port_assignment.h"
+
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -35,7 +38,7 @@ struct {
   __uint (max_entries, NAT64_NEW_FLOW_EVENT_RINGBUFFER_SIZE);
 } nat64_new_flow_event_rb SEC (".maps") /* event ringbuf to inform userspace prog in terms of new IPv6 flow */;
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 send_new_flow_event(__u32 iface_index)
 {
 	struct nat64_ipv6_new_flow_event *event;
@@ -51,7 +54,7 @@ send_new_flow_event(__u32 iface_index)
 	return NAT64_OK;
 }
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 					__u8 ip_version, void *ip_hdr, 
 					__u8 nxt_hdr, void *nxt_ptr)
@@ -121,7 +124,8 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 	return NAT64_OK;
 }
 
-__attribute__((__always_inline__)) static inline int
+
+static __always_inline int
 store_nat64_flow_records(const struct nat64_table_tuple *outgoing_flow_sig,
 				const struct nat64_table_value *outgoing_flow_value)
 {
@@ -157,6 +161,7 @@ store_nat64_flow_records(const struct nat64_table_tuple *outgoing_flow_sig,
 	// Prepare incoming (v4 to v6) flow value
 	__builtin_memcpy(incoming_flow_value.addr.original_ip6, outgoing_flow_sig->addr.v6.src_ip6.u6_addr8, NAT64_IPV6_ADDR_LENGTH);
 	incoming_flow_value.last_seen = outgoing_flow_value->last_seen;
+	incoming_flow_value.timeout_value = outgoing_flow_value->timeout_value;
 
 	NAT64_LOG_DEBUG("Created incoming flow signature (reversion)", NAT64_LOG_L4_PROTOCOL(incoming_flow_sig.protocol),
 					NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(incoming_flow_sig.src_port)), NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(incoming_flow_sig.dst_port)),
@@ -175,8 +180,8 @@ store_nat64_flow_records(const struct nat64_table_tuple *outgoing_flow_sig,
 	return NAT64_OK;
 }
 
-__attribute__((__always_inline__)) static inline int
-fetch_nat64_addr_and_port(__u32 iface_index,
+static __always_inline int
+process_nat64_new_outgoing_ipv6_flow(__u32 iface_index,
 							const struct nat64_table_tuple *outgoing_flow_sig, struct nat64_table_value *outgoing_flow_value)
 {
 	struct nat64_address_port_assignment *assignment;
@@ -242,6 +247,20 @@ fetch_nat64_addr_and_port(__u32 iface_index,
 	}
 
 	return NAT64_OK;
+}
+
+static __always_inline struct nat64_table_value *
+nat64_kern_get_flow_value_by_key(enum nat64_flow_direction direction, const struct nat64_table_tuple *flow_sig)
+{
+	struct nat64_table_value *flow_value = NULL;
+
+	if (direction == NAT64_FLOW_DIRECTION_OUTGOING) {
+		flow_value = bpf_map_lookup_elem(&nat64_v6_v4_map, flow_sig);
+	} else {
+		flow_value = bpf_map_lookup_elem(&nat64_v4_v6_map, flow_sig);
+	}
+
+	return flow_value;
 }
 
 #endif

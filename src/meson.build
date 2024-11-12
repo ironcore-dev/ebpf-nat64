@@ -12,8 +12,9 @@ bpf_kern_header_files = [
 	'ebpf_lib/nat64_modify_hdr.h',
 	'ebpf_lib/nat64_checksum.h',
 	'ebpf_lib/nat64_kern_log.h',
-	'ebpf_lib/nat64_flow_handling.h'
-]  # Add header files as needed
+	'ebpf_lib/nat64_flow_handling.h',
+	'ebpf_lib/nat64_tcp_state_tracking.h'
+] #header files used to compile the BPF kernel program
 
 
 # header_dir = meson.current_source_dir()
@@ -55,6 +56,15 @@ bpf_skel = custom_target('bpf_skel',
 )
 
 
+user_app_headers = [
+	'include/user_app/nat64_conf.h',
+	'include/user_app/nat64_conf_opts.h',
+	'include/user_app/nat64_user.h',
+	'include/user_app/nat64_ebpf_skel_handler.h',
+	'include/user_app/nat64_running_thread.h',
+	'include/user_app/nat64_addr_port_manage.h',
+	'include/user_app/nat64_user_log.h',
+] #header files used to compile the BPF userspace program
 
 
 user_app_sources = [
@@ -65,20 +75,8 @@ user_app_sources = [
 	'nat64_running_thread.c',
 	'nat64_addr_port_manage.c',
 	'nat64_user_log.c',
-	# Add more .c files here as needed
-]
+] #source files used to compile the BPF userspace program
 
-# Define user application headers
-user_app_headers = [
-	'include/user_app/nat64_conf.h',
-	'include/user_app/nat64_conf_opts.h',
-	'include/user_app/nat64_user.h',
-	'include/user_app/nat64_ebpf_skel_handler.h',
-	'include/user_app/nat64_running_thread.h',
-	'include/user_app/nat64_addr_port_manage.h',
-	'include/user_app/nat64_user_log.h',
-	# Add more .h files here as needed
-]
 
 
 # Main application

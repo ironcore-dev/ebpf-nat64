@@ -7,6 +7,8 @@
 
 #include "nat64_addr_port_manage.h"
 #include "nat64_user_log.h"
+#include "nat64_addr_port_assignment.h"
+#include "nat64_table_tuple.h"
 
 
 const union ipv6_addr nat64_ipv6_prefix = {
@@ -274,24 +276,26 @@ static int init_iface_addr_port_assignment(void) {
 	return NAT64_OK;
 }
 
-static int compute_reverse_key_value(bool is_v6_v4_map, const struct nat64_table_tuple *key, const struct nat64_table_value *value,
+static int compute_reverse_key_value(enum nat64_flow_direction direction, const struct nat64_table_tuple *key, const struct nat64_table_value *value,
 								struct nat64_table_tuple *reverse_key, struct nat64_table_value *reverse_value)
 {
 	int ret;
 
-	if (is_v6_v4_map) {
-		reverse_key->version = NAT64_IP_VERSION_V4; // IPv4
-		reverse_key->addr.v4.src_ip = key->addr.v6.dst_ip6.u6_addr32[3]; // Last 4 bytes of IPv6 dst
-		reverse_key->addr.v4.dst_ip = value->addr.nat64_v4_addr;
-		if (key->protocol == IPPROTO_TCP || key->protocol == IPPROTO_UDP) {
-			reverse_key->protocol = key->protocol;
-			reverse_key->src_port = key->dst_port; // Swap src and dst
-			reverse_key->dst_port = value->port.nat64_port;
-		} else {
-			reverse_key->protocol = IPPROTO_ICMP;
-			reverse_key->src_port = ICMP_ECHOREPLY;
-			reverse_key->dst_port = value->port.nat64_port;
-		}
+	if (direction == NAT64_FLOW_DIRECTION_OUTGOING) {
+		nat64_fill_reverse_key(direction, key, value, reverse_key);
+
+		// reverse_key->version = NAT64_IP_VERSION_V4; // IPv4
+		// reverse_key->addr.v4.src_ip = key->addr.v6.dst_ip6.u6_addr32[3]; // Last 4 bytes of IPv6 dst
+		// reverse_key->addr.v4.dst_ip = value->addr.nat64_v4_addr;
+		// if (key->protocol == IPPROTO_TCP || key->protocol == IPPROTO_UDP) {
+		// 	reverse_key->protocol = key->protocol;
+		// 	reverse_key->src_port = key->dst_port; // Swap src and dst
+		// 	reverse_key->dst_port = value->port.nat64_port;
+		// } else {
+		// 	reverse_key->protocol = IPPROTO_ICMP;
+		// 	reverse_key->src_port = ICMP_ECHOREPLY;
+		// 	reverse_key->dst_port = value->port.nat64_port;
+		// }
 
 		ret = bpf_map_lookup_elem(nat64_get_v4_v6_map_fd(), reverse_key, reverse_value);
 		if (NAT64_FAILED(ret)) {
@@ -300,19 +304,21 @@ static int compute_reverse_key_value(bool is_v6_v4_map, const struct nat64_table
 		}
 
 	} else {
-		reverse_key->version = NAT64_IP_VERSION_V6; // IPv6
-		memcpy(&reverse_key->addr.v6.src_ip6, &value->addr.original_ip6, NAT64_IPV6_ADDR_LENGTH);
-		memcpy(&reverse_key->addr.v6.dst_ip6.u6_addr8, &nat64_ipv6_prefix, 12);
-		memcpy(&reverse_key->addr.v6.dst_ip6.u6_addr32[3], &key->addr.v4.src_ip, 4);
-		if (key->protocol == IPPROTO_TCP || key->protocol == IPPROTO_UDP) {
-			reverse_key->protocol = key->protocol;
-			reverse_key->src_port = value->port.original_port; // Swap src and dst
-			reverse_key->dst_port = key->src_port;
-		} else {
-			reverse_key->protocol = IPPROTO_ICMPV6;
-			reverse_key->src_port = bpf_htons(ICMPV6_ECHO_REQUEST);
-			reverse_key->dst_port = key->src_port;
-		}
+		nat64_fill_reverse_key(direction, key, value, reverse_key);
+
+		// reverse_key->version = NAT64_IP_VERSION_V6; // IPv6
+		// memcpy(&reverse_key->addr.v6.src_ip6, &value->addr.original_ip6, NAT64_IPV6_ADDR_LENGTH);
+		// memcpy(&reverse_key->addr.v6.dst_ip6.u6_addr8, &nat64_ipv6_prefix, 12);
+		// memcpy(&reverse_key->addr.v6.dst_ip6.u6_addr32[3], &key->addr.v4.src_ip, 4);
+		// if (key->protocol == IPPROTO_TCP || key->protocol == IPPROTO_UDP) {
+		// 	reverse_key->protocol = key->protocol;
+		// 	reverse_key->src_port = value->port.original_port; // Swap src and dst
+		// 	reverse_key->dst_port = key->src_port;
+		// } else {
+		// 	reverse_key->protocol = IPPROTO_ICMPV6;
+		// 	reverse_key->src_port = bpf_htons(ICMPV6_ECHO_REQUEST);
+		// 	reverse_key->dst_port = key->src_port;
+		// }
 
 		ret = bpf_map_lookup_elem(nat64_get_v6_v4_map_fd(), reverse_key, reverse_value);
 		if (NAT64_FAILED(ret)) {
@@ -353,23 +359,23 @@ static int remove_allocated_addr_port(const struct nat64_table_value *value)
 static void cleanup_expired_entries(int map_fd) {
 	struct nat64_table_tuple key = {0}, next_key={0}, reverse_key={0};
 	struct nat64_table_value value={0}, reverse_value={0};
-	bool is_v6_v4_map = map_fd == nat64_get_v6_v4_map_fd();
-	int reverse_map_fd = is_v6_v4_map? nat64_get_v4_v6_map_fd() : nat64_get_v6_v4_map_fd();
+	enum nat64_flow_direction direction = map_fd == nat64_get_v6_v4_map_fd() ? NAT64_FLOW_DIRECTION_OUTGOING : NAT64_FLOW_DIRECTION_INCOMING;
+	int reverse_map_fd = direction == NAT64_FLOW_DIRECTION_OUTGOING ? nat64_get_v4_v6_map_fd() : nat64_get_v6_v4_map_fd();
 	__u64 current_time;
 
 	while (bpf_map_get_next_key(map_fd, &key, &next_key) == NAT64_OK) {
 		if (!NAT64_FAILED(bpf_map_lookup_elem(map_fd, &next_key, &value))) {
 			current_time = get_current_time_ns();
 
-			if ((__u64)(current_time - value.last_seen) > NAT64_ASSIGNMET_LIVENESS_IN_NANO) {
-				if (NAT64_FAILED(compute_reverse_key_value(is_v6_v4_map, &next_key, &value, &reverse_key, &reverse_value))) {
+			if ((__u64)(current_time - value.last_seen) > NAT64_SEC_TO_NANO(value.timeout_value)) {
+				if (NAT64_FAILED(compute_reverse_key_value(direction, &next_key, &value, &reverse_key, &reverse_value))) {
 					NAT64_LOG_ERROR("Failed to compute reverse key and value");
 					bpf_map_delete_elem(map_fd, &next_key);
 					remove_allocated_addr_port(&value);
 					continue;
 				}
 
-			if ((__u64)(current_time - reverse_value.last_seen) > NAT64_ASSIGNMET_LIVENESS_IN_NANO) {
+			if ((__u64)(current_time - reverse_value.last_seen) > NAT64_SEC_TO_NANO(value.timeout_value)) {
 					bpf_map_delete_elem(map_fd, &next_key);
 					bpf_map_delete_elem(reverse_map_fd, &reverse_key);
 					remove_allocated_addr_port(&value);

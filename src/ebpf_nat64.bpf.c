@@ -57,7 +57,7 @@ struct {
 
 static __u8 flag;
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -83,7 +83,8 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 	if (!flow_value) {
 		flow_value = &new_flow_value;
 		flow_value->last_seen = bpf_ktime_get_ns();
-		ret = fetch_nat64_addr_and_port(ctx->ingress_ifindex, &flow_sig, flow_value);
+		flow_value->timeout_value = NAT64_ASSIGNMENT_LIVENESS_IN_SEC;
+		ret = process_nat64_new_outgoing_ipv6_flow(ctx->ingress_ifindex, &flow_sig, flow_value);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to fetch an assigned nat64 addr and port");
 			return NAT64_ERROR;
@@ -92,6 +93,11 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 
 	// Update the last seen timestamp
 	flow_value->last_seen = bpf_ktime_get_ns();
+
+	// process tcp state
+	if (flow_sig.protocol == IPPROTO_TCP)
+		nat64_process_tcp_state(NAT64_FLOW_DIRECTION_OUTGOING, data_end,
+								(const struct nat64_table_tuple *)&flow_sig, flow_value, (const struct tcphdr *)(ipv6_hdr + 1));
 
 	ret = convert_v6_pkt_to_v4_pkt(ctx, flow_value, eth, ipv6_hdr);
 	if (NAT64_FAILED(ret)) {
@@ -103,7 +109,7 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 }
 
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -130,6 +136,10 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 
 	// Update the last seen timestamp
 	flow_value->last_seen = bpf_ktime_get_ns();
+	
+	if (flow_sig.protocol == IPPROTO_TCP)
+		nat64_process_tcp_state(NAT64_FLOW_DIRECTION_INCOMING, data_end,
+								(const struct nat64_table_tuple *)&flow_sig, flow_value, (const struct tcphdr *)(ipv4_hdr + 1));
 
 	// Convert the IPv4 packet to IPv6
 	ret = convert_v4_pkt_to_v6_pkt(ctx, flow_value, eth, ipv4_hdr);
@@ -137,11 +147,12 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 		NAT64_LOG_ERROR("Failed to convert IPv4 packet to IPv6");
 		return NAT64_ERROR;
 	}
+
 	return NAT64_OK;
 }
 
 
-__attribute__((__always_inline__)) static inline int
+static __always_inline int
 nat64_parse_l2(struct xdp_md *ctx)
 {
 	void *data = (void *)(long)ctx->data;
