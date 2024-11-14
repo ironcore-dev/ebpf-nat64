@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <net/if.h>
+#include <arpa/inet.h> 
 
 #include <bpf/bpf.h>
 
@@ -12,14 +13,14 @@
 
 
 /*NAT64 configuration variables*/
-static int addr_port_item_cnt = 0;
-static int attach_iface_cnt = 0;
-
 static struct nat64_address_ports_range nat64_addr_port_pool[NAT64_ADDR_PORT_POOL_SIZE] = {0};
-static int attach_iface_index[NAT64_ATTACH_IFACE_MAX_CNT] = {0};
+static int addr_port_item_cnt = 0;
+
+int attach_iface_cnt = 0;
+int attach_iface_index[NAT64_ATTACH_IFACE_MAX_CNT] = {0};
 
 
-static int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
+int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
 {
 	char *pool_str = strdup(nat64_addr_port_pool_str);
 	char *token, *saveptr;
@@ -184,6 +185,3 @@ int nat64_set_kernel_config(void)
 
 	return NAT64_OK;
 }
-
-
-

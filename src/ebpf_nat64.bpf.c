@@ -39,7 +39,6 @@ struct {
 	__uint(max_entries, NAT64_MAX_ADDR_PORT_IN_USE);
 } nat64_address_port_in_use_map SEC(".maps"); // only used by userspace prog
 
-
 // Function to update the packet count for the given interface index
 // static inline void update_packet_count(__u32 iface_index) {
 // 	__u64 *count, initial_count = 0;

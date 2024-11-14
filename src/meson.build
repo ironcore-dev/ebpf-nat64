@@ -66,26 +66,47 @@ user_app_headers = [
 	'include/user_app/nat64_user_log.h',
 ] #header files used to compile the BPF userspace program
 
-
-user_app_sources = [
-	'ebpf_nat64.c',
+app_shared_sources = [
 	'nat64_conf.c',
 	'nat64_conf_opts.c',
 	'nat64_ebpf_skel_handler.c',
 	'nat64_running_thread.c',
 	'nat64_addr_port_manage.c',
 	'nat64_user_log.c',
+]
+
+user_app_sources = [
+	'ebpf_nat64.c',
 ] #source files used to compile the BPF userspace program
 
 
 
 # Main application
 executable('ebpf_nat64',
-	[user_app_sources, bpf_skel],
+	[user_app_sources, app_shared_sources, bpf_skel],
 	include_directories : [
 		inc,
 		include_directories('include'),
 		include_directories('include/user_app'),
+	],
+	dependencies : [libbpf_dep, libelf, libz, thread_dep],
+	link_with : libbpf,
+	install : true
+)
+
+test_app_sources = [
+	'test/ebpf_nat64.test.c',
+	'test/ebpf_nat64_test_func.c',
+]
+
+
+executable('ebpf_nat64_test',
+	[test_app_sources, app_shared_sources, bpf_skel,],
+	include_directories : [
+		inc,
+		include_directories('include'),
+		include_directories('include/user_app'),
+		include_directories('test'),
 	],
 	dependencies : [libbpf_dep, libelf, libz, thread_dep],
 	link_with : libbpf,
