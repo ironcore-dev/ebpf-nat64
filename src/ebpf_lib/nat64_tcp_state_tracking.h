@@ -30,10 +30,10 @@ set_timeout_tcp_flow(const struct nat64_table_tuple *flow_sig, struct nat64_tabl
 								struct nat64_table_value *reverse_flow_value)
 {
 	if (flow_value->tcp_state == NAT64_FLOW_TCP_STATE_ESTABLISHED) {
-		flow_value->timeout_value = NAT64_ASSIGNMENT_LIVENESS_TCP_ESTABLISHED_IN_SEC;
+		flow_value->timeout_value = (__u16)NAT64_ASSIGNMENT_LIVENESS_TCP_ESTABLISHED_IN_SEC;
 		reverse_flow_value->timeout_value = flow_value->timeout_value;
 	} else {
-		flow_value->timeout_value = NAT64_ASSIGNMENT_LIVENESS_IN_SEC;
+		flow_value->timeout_value = (__u16)NAT64_ASSIGNMENT_LIVENESS_IN_SEC;
 		reverse_flow_value->timeout_value = flow_value->timeout_value;
 	}
 

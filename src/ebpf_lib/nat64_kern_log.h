@@ -17,8 +17,6 @@ struct {
   __uint (max_entries, NAT64_KERNEL_LOG_EVENT_RINGBUF_SIZE);
 } nat64_kernel_log_event_rb SEC (".maps") /* event ringbuf to inform userspace prog in terms of new IPv6 flow */;
 
-// static __u8 __log_level = NAT64_LOG_LEVEL_DEBUG;
-
 
 // event->timestamp = bpf_ktime_get_ns();
 // memset(event, 0, sizeof(struct nat64_kernel_log_event));

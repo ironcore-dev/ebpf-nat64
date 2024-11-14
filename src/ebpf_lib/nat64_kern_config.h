@@ -16,7 +16,7 @@ struct {
 
 static bool __is_config_loaded = false;
 
-static __u8 __log_level = 0;
+__u8 __log_level = 0;
 
 static __always_inline void load_kernel_config() {
 

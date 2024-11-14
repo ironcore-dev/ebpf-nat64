@@ -5,6 +5,8 @@
 #include <time.h>
 #include <pthread.h>
 
+#include <arpa/inet.h> 
+
 #include "nat64_addr_port_manage.h"
 #include "nat64_user_log.h"
 #include "nat64_addr_port_assignment.h"
@@ -428,7 +430,7 @@ void *nat64_thread_process_new_flow_event(void *arg  __attribute__((unused)))
 	}
 
 	while (addr_port_manage_running) {
-		ret = ring_buffer__poll(new_flow_event_rb, 100 /* timeout, ms */);
+		ret = ring_buffer__poll(new_flow_event_rb, 1 /* timeout, ms */);
 		if (ret == -EINTR) {
 			break;
 		}

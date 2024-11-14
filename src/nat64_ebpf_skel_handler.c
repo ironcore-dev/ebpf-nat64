@@ -197,4 +197,9 @@ void nat64_destroy_prog_skeleton(void)
 	}
 }
 
+int nat64_get_prog_fd(void)
+{
+	return bpf_program__fd(skel->progs.xdp_nat64);
+}
+
 NAT64_MAP_FACTORY(NAT64_MAP_FD_GETTER_IMPL)
