@@ -21,7 +21,6 @@ const union ipv6_addr nat64_ipv6_mask = {
 };
 
 
-
 static __u32 nat64_ip_in_use;
 static struct ring_buffer *new_flow_event_rb = NULL;
 static volatile bool addr_port_manage_running = true;
