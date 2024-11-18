@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <net/if.h>
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
 
 #include <bpf/bpf.h>
 

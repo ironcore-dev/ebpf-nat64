@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <unistd.h> 
+#include <unistd.h>
 
 #include <linux/in6.h>
 #include <linux/if_ether.h>
@@ -26,7 +26,7 @@
 #include "nat64_addr_port_assignment.h"
 #include "nat64_conf.h"
 
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
 
 const union ipv6_addr ipv6_test_pkt_dst_addr = {
 	.u6_addr8 = { 0x00, 0x64, 0xff, 0x9b, 0, 0, 0, 0, 0, 0, 0, 0, 0xc0, 0, 0x03, 0x01 }
@@ -58,7 +58,7 @@ int nat64_test_get_cmd_conf(int argc, char **argv)
 
 	if (NAT64_FAILED(nat64_parse_args(argc, argv)))
 		return NAT64_ERROR;
-	
+
 	ret = parse_addr_port_pool_str(nat64_get_addr_port_pool_str());
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to parse addr:port pool string");
@@ -82,7 +82,8 @@ static void init_test_env(void)
 }
 
 
-int nat64_run_tests(void) {
+int nat64_run_tests(void)
+{
 
 	init_test_env();
 

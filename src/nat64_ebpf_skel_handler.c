@@ -37,7 +37,6 @@ const static char *pin_basedir = NAT64_SHARED_MAP_PIN_PATH;
 // List of map names to unpin
 const static char *map_names[] = {
 	NAT64_MAP_FACTORY(NAT64_MAP_NAME)
-		// Add other shared and pinned map names here
 };
 
 

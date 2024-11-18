@@ -158,9 +158,8 @@ void nat64_macro_log(unsigned int level, unsigned int log_source,
 			 const char *message, ...)
 {
 
-	if (level > nat64_get_log_level()) {
+	if (level > nat64_get_log_level())
 		return;
-	}
 
 	char timestamp[TIMESTAMP_MAXSIZE];
 	va_list args;
@@ -231,9 +230,8 @@ parse_error:
 static void nat64_kern_log_print(unsigned int level, unsigned int log_source,
 						const char *message, const void **args)
 {
-	if (level > nat64_get_log_level()) {
+	if (level > nat64_get_log_level())
 		return;
-	}
 
 	char timestamp[TIMESTAMP_MAXSIZE];
 	FILE *f;
@@ -293,7 +291,7 @@ parse_error:
 	funlockfile(f);
 }
 
-static int nat64_kernel_log_event_handler(void *ctx, void *data, size_t data_sz)
+static int nat64_kernel_log_event_handler(void *ctx __attribute__((unused)), void *data, size_t data_sz __attribute__((unused)))
 {
 	const struct nat64_kernel_log_event *log_event = data;
 	const void *log_args[NAT64_LOG_MAX_ENTRIES * 3] = {0};  // 3 args per entry (key, type, value)
@@ -336,7 +334,7 @@ static int nat64_kernel_log_event_handler(void *ctx, void *data, size_t data_sz)
 }
 
 
-void *nat64_thread_process_kernel_log_event(void *arg)
+void *nat64_thread_process_kernel_log_event(void *arg __attribute__((unused)))
 {
 	int err;
 	

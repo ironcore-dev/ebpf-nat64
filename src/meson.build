@@ -17,12 +17,6 @@ bpf_kern_header_files = [
 ] #header files used to compile the BPF kernel program
 
 
-# header_dir = meson.current_source_dir()
-# bpf_kern_headers = []
-# foreach h : bpf_kern_header_files
-#     bpf_kern_headers += files(header_dir / h)
-# endforeach
-
 # Build BPF code
 bpf_prog = custom_target('ebpf_nat64_bpf',
 	input : ['ebpf_nat64.bpf.c'],
@@ -79,9 +73,6 @@ user_app_sources = [
 	'ebpf_nat64.c',
 ] #source files used to compile the BPF userspace program
 
-
-
-# Main application
 executable('ebpf_nat64',
 	[user_app_sources, app_shared_sources, bpf_skel],
 	include_directories : [

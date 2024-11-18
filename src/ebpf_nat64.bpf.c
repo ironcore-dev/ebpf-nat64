@@ -15,15 +15,6 @@
 
 
 
-// struct {
-// 	__uint(type, BPF_MAP_TYPE_HASH);
-// 	__type(key, __u32); // Interface index
-// 	__type(value, __u64); // Packet count
-// 	__uint(max_entries, NAT64_ATTACH_IFACE_MAX_CNT);
-// 	__uint(pinning, LIBBPF_PIN_BY_NAME);
-// } iface_packet_count_map SEC(".maps");
-
-
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u32); // IPv4 address
@@ -39,20 +30,6 @@ struct {
 	__uint(max_entries, NAT64_MAX_ADDR_PORT_IN_USE);
 } nat64_address_port_in_use_map SEC(".maps"); // only used by userspace prog
 
-// Function to update the packet count for the given interface index
-// static inline void update_packet_count(__u32 iface_index) {
-// 	__u64 *count, initial_count = 0;
-
-// 	// Look up the current count for the interface index
-// 	count = bpf_map_lookup_elem(&iface_packet_count_map, &iface_index);
-// 	if (count) {
-// 		// If found, increment the count
-// 		__sync_fetch_and_add(count, 1);
-// 	} else {
-// 		// If not found, create a new entry with initial count
-// 		bpf_map_update_elem(&iface_packet_count_map, &iface_index, &initial_count, BPF_ANY);
-// 	}
-// }
 
 static __u8 flag;
 
@@ -135,7 +112,7 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 
 	// Update the last seen timestamp
 	flow_value->last_seen = bpf_ktime_get_ns();
-	
+
 	if (flow_sig.protocol == IPPROTO_TCP)
 		nat64_process_tcp_state(NAT64_FLOW_DIRECTION_INCOMING, data_end,
 								(const struct nat64_table_tuple *)&flow_sig, flow_value, (const struct tcphdr *)(ipv4_hdr + 1));
@@ -161,9 +138,6 @@ nat64_parse_l2(struct xdp_md *ctx)
 	struct ethhdr *eth = data;
 	assert_len(eth, data_end);
 
-	// Update the packet count for the interface
-	// update_packet_count(iface_index);
-	
 	if(eth->h_proto == bpf_htons(ETH_P_IP))
 		return process_ipv4_pkt(ctx, eth + 1, eth);
 

@@ -5,7 +5,7 @@
 #include <time.h>
 #include <pthread.h>
 
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
 
 #include "nat64_addr_port_manage.h"
 #include "nat64_user_log.h"
@@ -284,20 +284,6 @@ static int compute_reverse_key_value(enum nat64_flow_direction direction, const 
 
 	if (direction == NAT64_FLOW_DIRECTION_OUTGOING) {
 		nat64_fill_reverse_key(direction, key, value, reverse_key);
-
-		// reverse_key->version = NAT64_IP_VERSION_V4; // IPv4
-		// reverse_key->addr.v4.src_ip = key->addr.v6.dst_ip6.u6_addr32[3]; // Last 4 bytes of IPv6 dst
-		// reverse_key->addr.v4.dst_ip = value->addr.nat64_v4_addr;
-		// if (key->protocol == IPPROTO_TCP || key->protocol == IPPROTO_UDP) {
-		// 	reverse_key->protocol = key->protocol;
-		// 	reverse_key->src_port = key->dst_port; // Swap src and dst
-		// 	reverse_key->dst_port = value->port.nat64_port;
-		// } else {
-		// 	reverse_key->protocol = IPPROTO_ICMP;
-		// 	reverse_key->src_port = ICMP_ECHOREPLY;
-		// 	reverse_key->dst_port = value->port.nat64_port;
-		// }
-
 		ret = bpf_map_lookup_elem(nat64_get_v4_v6_map_fd(), reverse_key, reverse_value);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to find a reverse mapping in v4_v6 map", NAT64_LOG_ERRNO(ret));
@@ -306,21 +292,6 @@ static int compute_reverse_key_value(enum nat64_flow_direction direction, const 
 
 	} else {
 		nat64_fill_reverse_key(direction, key, value, reverse_key);
-
-		// reverse_key->version = NAT64_IP_VERSION_V6; // IPv6
-		// memcpy(&reverse_key->addr.v6.src_ip6, &value->addr.original_ip6, NAT64_IPV6_ADDR_LENGTH);
-		// memcpy(&reverse_key->addr.v6.dst_ip6.u6_addr8, &nat64_ipv6_prefix, 12);
-		// memcpy(&reverse_key->addr.v6.dst_ip6.u6_addr32[3], &key->addr.v4.src_ip, 4);
-		// if (key->protocol == IPPROTO_TCP || key->protocol == IPPROTO_UDP) {
-		// 	reverse_key->protocol = key->protocol;
-		// 	reverse_key->src_port = value->port.original_port; // Swap src and dst
-		// 	reverse_key->dst_port = key->src_port;
-		// } else {
-		// 	reverse_key->protocol = IPPROTO_ICMPV6;
-		// 	reverse_key->src_port = bpf_htons(ICMPV6_ECHO_REQUEST);
-		// 	reverse_key->dst_port = key->src_port;
-		// }
-
 		ret = bpf_map_lookup_elem(nat64_get_v6_v4_map_fd(), reverse_key, reverse_value);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to find a reverse mapping in v6_v4 map", NAT64_LOG_ERRNO(ret));

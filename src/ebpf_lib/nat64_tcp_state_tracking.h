@@ -81,7 +81,7 @@ nat64_process_tcp_state(enum nat64_flow_direction direction, void *data_end,
 			flow_value->tcp_state = NAT64_FLOW_TCP_STATE_FINWAIT;
 		else
 			flow_value->tcp_state = NAT64_FLOW_TCP_STATE_RST_FIN;
-		
+
 		if (NAT64_FAILED(change_reverse_traffic_tcp_state(direction, flow_sig, flow_value, flow_value->tcp_state)))
 			return NAT64_ERROR;
 

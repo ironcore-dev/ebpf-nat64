@@ -19,9 +19,7 @@ vmlinux_dir = 'vmlinux'
 
 # Get architecture
 arch = run_command('uname', '-m', check: true).stdout().strip()
-message(arch)
 arch = arch.replace('x86_64', 'x86').replace('aarch64', 'arm64').replace('ppc64le', 'powerpc').replace('mips', 'mips').replace('arm', 'arm').replace('riscv64', 'riscv')
-message(arch)
 vmlinux_header = join_paths(vmlinux_dir, arch, 'vmlinux.h')
 
 # Include directories
@@ -41,18 +39,14 @@ thread_dep = dependency('threads')
 clang_includes = []
 search_start = false
 foreach line : run_command(clang, '-v', '-E', '-', check: false, capture: true).stderr().split('\n')
-	message(line)
-	message(line.strip())
 	if search_start
 		if line.strip() == 'End of search list.'
 			break
 		endif
 		if line.strip().startswith('/')
-			message('found')
 			clang_includes += ['-idirafter', line.strip()]
 		endif
 	elif line.strip() == '#include <...> search starts here:'
-		message('start')
 		search_start = true
 	endif
 endforeach
@@ -60,9 +54,6 @@ endforeach
 clang_includes += ['-idirafter', meson.current_source_dir() / 'libbpf/include/uapi']  # Add the kernel headers
 clang_includes += ['-idirafter', meson.current_source_dir() / 'vmlinux']  # Add the kernel headers
 
-
-message(clang_includes)
-message(libbpf_src)
 
 # Build libbpf
 libbpf_built = custom_target('libbpf_built',

@@ -47,7 +47,7 @@ convert_icmpv6_to_icmpv4(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, con
 
 
 __attribute__((__always_inline__)) static void
-convert_icmpv4_to_icmpv6(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, const struct ipv6hdr *ipv6_hdr, const struct nat64_table_value *flow_value) {
+convert_icmpv4_to_icmpv6(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, struct ipv6hdr *ipv6_hdr, const struct nat64_table_value *flow_value) {
 	__u8 type;
 	__u16 cksum;
 	__be32 icmp6_cksum, ipv6_pseudo_hdr_cksum, cksum_tmp;
