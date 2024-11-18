@@ -15,23 +15,23 @@
 #include "nat64_user_log.h"
 #include "nat64_ebpf_skel_handler.h"
 
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
 
 
 static uint16_t selected_nat_port = 0;
 
 // Helper function to create a basic IPv6 packet
-static void craft_ipv6_udp_tcp_packet(char *packet, size_t *len, uint16_t proto) {
+static void craft_ipv6_udp_tcp_packet(char *packet, size_t *len, uint16_t proto)
+{
 	struct ethhdr *eth = (struct ethhdr *)packet;
 	struct ipv6hdr *ip6 = (struct ipv6hdr *)(packet + sizeof(struct ethhdr));
 	struct udphdr *udp;
 	struct tcphdr *tcp;
 
-	if (proto == IPPROTO_UDP) {
+	if (proto == IPPROTO_UDP)
 		udp = (struct udphdr *)(packet + sizeof(struct ethhdr) + sizeof(struct ipv6hdr));
-	} else if (proto == IPPROTO_TCP) {
+	else if (proto == IPPROTO_TCP)
 		tcp = (struct tcphdr *)(packet + sizeof(struct ethhdr) + sizeof(struct ipv6hdr));
-	}
 
 	memset(packet, 0, *len);
 
@@ -66,7 +66,8 @@ static void craft_ipv6_udp_tcp_packet(char *packet, size_t *len, uint16_t proto)
 }
 
 // Helper function to check the validity of an IPv4 packet
-static int validate_ipv4_udp_tcp_packet(const char *packet, size_t len, uint16_t proto) {
+static int validate_ipv4_udp_tcp_packet(const char *packet, uint16_t proto)
+{
 	const struct ethhdr *eth = (const struct ethhdr *)packet;
 	const struct iphdr *ip4 = (const struct iphdr *)(packet + sizeof(*eth));
 	const struct udphdr *udp;
@@ -75,11 +76,10 @@ static int validate_ipv4_udp_tcp_packet(const char *packet, size_t len, uint16_t
 	uint16_t l4_src_port;
 	uint16_t l4_dst_port;
 
-	if (proto == IPPROTO_UDP) {
+	if (proto == IPPROTO_UDP)
 		udp = (const struct udphdr *)(packet + sizeof(struct ethhdr) + sizeof(struct iphdr));
-	} else if (proto == IPPROTO_TCP) {
+	else if (proto == IPPROTO_TCP)
 		tcp = (const struct tcphdr *)(packet + sizeof(struct ethhdr) + sizeof(struct iphdr));
-	}
 
 	// Check Ethernet header
 	if (eth->h_proto != htons(ETH_P_IP)) {
@@ -111,6 +111,9 @@ static int validate_ipv4_udp_tcp_packet(const char *packet, size_t len, uint16_t
 	} else if (proto == IPPROTO_TCP) {
 		l4_src_port = tcp->source;
 		l4_dst_port = tcp->dest;
+	} else {
+		NAT64_LOG_ERROR("Invalid l4 protocol", NAT64_LOG_L4_PROTOCOL(proto));
+		return TEST_ERROR;
 	}
 
 
@@ -125,12 +128,12 @@ static int validate_ipv4_udp_tcp_packet(const char *packet, size_t len, uint16_t
 		NAT64_LOG_ERROR("Invalid source l4 port (selected NAT port)", NAT64_LOG_L4_PROTO_SRC_PORT(ntohs(l4_src_port)));
 		return TEST_ERROR;
 	}
-	
 
 	return TEST_PASS;
 }
 
-static void craft_ipv4_udp_tcp_packet(char *packet, size_t *len, uint16_t proto) {
+static void craft_ipv4_udp_tcp_packet(char *packet, size_t *len, uint16_t proto)
+{
 	struct ethhdr *eth = (struct ethhdr *)packet;
 	struct iphdr *ip4 = (struct iphdr *)(packet + sizeof(struct ethhdr));
 	struct udphdr *udp;
@@ -150,12 +153,10 @@ static void craft_ipv4_udp_tcp_packet(char *packet, size_t *len, uint16_t proto)
 	ip4->check = 0;
 	ip4->tot_len = sizeof(struct iphdr) + (proto == IPPROTO_UDP ? sizeof(struct udphdr) : sizeof(struct tcphdr));
 
-	if (proto == IPPROTO_UDP) {
+	if (proto == IPPROTO_UDP)
 		udp = (struct udphdr *)(packet + sizeof(struct ethhdr) + sizeof(struct iphdr));
-	} else if (proto == IPPROTO_TCP) {
+	else if (proto == IPPROTO_TCP)
 		tcp = (struct tcphdr *)(packet + sizeof(struct ethhdr) + sizeof(struct iphdr));
-	}
-
 
 	if (proto == IPPROTO_UDP) {
 		udp->dest = selected_nat_port;
@@ -174,7 +175,7 @@ static void craft_ipv4_udp_tcp_packet(char *packet, size_t *len, uint16_t proto)
 	*len = sizeof(struct ethhdr) + sizeof(struct iphdr) + (proto == IPPROTO_UDP ? sizeof(struct udphdr) : sizeof(struct tcphdr));
 }
 
-static int validate_ipv6_udp_tcp_packet(const char *packet, size_t len, uint16_t proto)
+static int validate_ipv6_udp_tcp_packet(const char *packet, uint16_t proto)
 {
 	const struct ethhdr *eth = (const struct ethhdr *)packet;
 	const struct ipv6hdr *ip6 = (const struct ipv6hdr *)(packet + sizeof(*eth));
@@ -184,11 +185,10 @@ static int validate_ipv6_udp_tcp_packet(const char *packet, size_t len, uint16_t
 	uint16_t l4_src_port;
 	uint16_t l4_dst_port;
 
-	if (proto == IPPROTO_UDP) {
+	if (proto == IPPROTO_UDP)
 		udp = (const struct udphdr *)(packet + sizeof(*eth) + sizeof(*ip6));
-	} else if (proto == IPPROTO_TCP) {
+	else if (proto == IPPROTO_TCP)
 		tcp = (const struct tcphdr *)(packet + sizeof(*eth) + sizeof(*ip6));
-	}
 
 	// check Ethernet header
 	if (eth->h_proto != htons(ETH_P_IPV6)) {
@@ -218,6 +218,9 @@ static int validate_ipv6_udp_tcp_packet(const char *packet, size_t len, uint16_t
 	} else if (proto == IPPROTO_TCP) {
 		l4_src_port = tcp->source;
 		l4_dst_port = tcp->dest;
+	} else {
+		NAT64_LOG_ERROR("Invalid l4 protocol", NAT64_LOG_L4_PROTOCOL(proto));
+		return TEST_ERROR;
 	}
 
 	if (l4_src_port != htons(ipv4_test_pkt_l4_dst_port)) {
@@ -249,7 +252,6 @@ static int test_udp_tcp_ipv6_to_ipv4(uint16_t proto)
 		.repeat = 1,
 		.retval = 0,
 	};
-	
 
 	/****IPv6 UDP -> IPv4 UDP, twice****/
 	craft_ipv6_udp_tcp_packet(packet, &packet_len, proto);
@@ -267,7 +269,7 @@ static int test_udp_tcp_ipv6_to_ipv4(uint16_t proto)
 		return TEST_ERROR;
 	}
 
-	ret = validate_ipv4_udp_tcp_packet(output, opts.data_size_out, proto);
+	ret = validate_ipv4_udp_tcp_packet(output, proto);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Output validation failed");
 		return TEST_ERROR;
@@ -286,7 +288,7 @@ static int test_udp_tcp_ipv6_to_ipv4(uint16_t proto)
 		return TEST_ERROR;
 	}
 
-	ret = validate_ipv4_udp_tcp_packet(output, opts.data_size_out, proto);
+	ret = validate_ipv4_udp_tcp_packet(output, proto);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Output validation failed");
 		return TEST_ERROR;
@@ -297,7 +299,7 @@ static int test_udp_tcp_ipv6_to_ipv4(uint16_t proto)
 
 static int test_udp_tcp_ipv4_to_ipv6(uint16_t proto)
 {
-	/****IPv4 L4 pkt -> IPv6 L4 pkt, twice****/
+	/****IPv4 L4 pkt -> IPv6 L4 pkt, once****/
 	char packet2[128];
 	char output2[256];
 	size_t packet_len2 = sizeof(packet2);
@@ -328,7 +330,7 @@ static int test_udp_tcp_ipv4_to_ipv6(uint16_t proto)
 		return TEST_ERROR;
 	}
 
-	ret = validate_ipv6_udp_tcp_packet(output2, opts2.data_size_out, proto);
+	ret = validate_ipv6_udp_tcp_packet(output2, proto);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Output validation failed");
 		return TEST_ERROR;
@@ -342,14 +344,12 @@ int nat64_test_udp(void)
 	int ret;
 
 	ret = test_udp_tcp_ipv6_to_ipv4(IPPROTO_UDP);
-	if (NAT64_FAILED(ret)) {
+	if (NAT64_FAILED(ret))
 		return TEST_ERROR;
-	}
 
 	ret = test_udp_tcp_ipv4_to_ipv6(IPPROTO_UDP);
-	if (NAT64_FAILED(ret)) {
+	if (NAT64_FAILED(ret))
 		return TEST_ERROR;
-	}
 
 	return TEST_PASS;
 }
@@ -357,16 +357,14 @@ int nat64_test_udp(void)
 int nat64_test_tcp(void)
 {
 	int ret;
-	
+
 	ret = test_udp_tcp_ipv6_to_ipv4(IPPROTO_TCP);
-	if (NAT64_FAILED(ret)) {
+	if (NAT64_FAILED(ret))
 		return TEST_ERROR;
-	}
 
 	ret = test_udp_tcp_ipv4_to_ipv6(IPPROTO_TCP);
-	if (NAT64_FAILED(ret)) {
+	if (NAT64_FAILED(ret))
 		return TEST_ERROR;
-	}
 
 	return TEST_PASS;
 }

@@ -16,9 +16,8 @@ extern const union ipv6_addr nat64_ipv6_prefix;
 extern const union ipv6_addr nat64_ipv6_mask;
 
 
-static void process_stop_signal(int signum)
+static void process_stop_signal(int signum __attribute__((unused)))
 {
-	
 	NAT64_LOG_INFO("Terminating the program");
 	nat64_stop_running_threads();
 	nat64_destroy_prog_maps();
@@ -28,13 +27,14 @@ static void process_stop_signal(int signum)
 	exit(0); // Exit the program
 }
 
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
 	int ret = 0;
 
 	ret = nat64_test_get_cmd_conf(argc, argv);
-	if(NAT64_FAILED(ret))
+	if (NAT64_FAILED(ret))
 		return 1;
-	
+
 	signal(SIGINT, process_stop_signal);
 
 	/* Open load and verify BPF application */
@@ -49,7 +49,7 @@ int main(int argc, char **argv){
 		NAT64_LOG_ERROR("Failed to initialize prog map fds");
 		goto delete_prog;
 	}
-	
+
 	ret = nat64_addr_port_manage_init();
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to initialize addr port manage");
@@ -76,10 +76,9 @@ int main(int argc, char **argv){
 	}
 	printf("All tests passed \n");
 	raise(SIGINT);
-	
-	while (1) {
+
+	while (1)
 		sleep(1);
-	}
 
 stop_running_threads:
 	nat64_stop_running_threads();

@@ -1,2 +1,3 @@
 /build
 /.vscode
+code_check/_checkpatch.pl

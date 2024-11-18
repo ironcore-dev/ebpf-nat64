@@ -15,14 +15,13 @@
 #include "nat64_user.h"
 
 
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
+static int libbpf_print_fn(enum libbpf_print_level level __attribute__((unused)), const char *format, va_list args)
 {
 	return vfprintf(stderr, format, args);
 }
 
 
-
-static void process_stop_signal(int signum)
+static void process_stop_signal(int signum __attribute__((unused)))
 {
 	
 	NAT64_LOG_INFO("Terminating the program");
@@ -35,7 +34,8 @@ static void process_stop_signal(int signum)
 	exit(0); // Exit the program
 }
 
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
 	int ret = 0;
 
 	ret = nat64_get_cmd_conf(argc, argv);
@@ -84,9 +84,8 @@ int main(int argc, char **argv){
 		goto stop_running_threads;
 	}
 
-	while (1) {
+	while (1)
 		sleep(1);
-	}
 
 stop_running_threads:
 	nat64_stop_running_threads();

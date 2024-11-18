@@ -35,8 +35,8 @@ static __always_inline __u32 csum_sub(__u32 csum, __u32 addend)
 	return csum_add(csum, ~addend);
 }
 
-static __always_inline __u32 csum_diff(const void *from, __u32 size_from,
-					const void *to,   __u32 size_to,
+static __always_inline __u32 csum_diff(void *from, __u32 size_from,
+					void *to,   __u32 size_to,
 					__u32 seed)
 {
 	__s64 csum_diff_result = bpf_csum_diff(from, size_from, to, size_to, seed);
@@ -47,7 +47,7 @@ static __always_inline __u32 csum_diff(const void *from, __u32 size_from,
 	return (__u32) csum_diff_result;
 }
 
-static __always_inline __be32 ipv6_pseudohdr_checksum(const struct ipv6hdr *hdr,
+static __always_inline __be32 ipv6_pseudohdr_checksum(struct ipv6hdr *hdr,
 													__u8 next_hdr,
 													__u16 payload_len, __be32 sum)
 {

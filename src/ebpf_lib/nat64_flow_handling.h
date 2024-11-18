@@ -254,11 +254,10 @@ nat64_kern_get_flow_value_by_key(enum nat64_flow_direction direction, const stru
 {
 	struct nat64_table_value *flow_value = NULL;
 
-	if (direction == NAT64_FLOW_DIRECTION_OUTGOING) {
+	if (direction == NAT64_FLOW_DIRECTION_OUTGOING)
 		flow_value = bpf_map_lookup_elem(&nat64_v6_v4_map, flow_sig);
-	} else {
+	else
 		flow_value = bpf_map_lookup_elem(&nat64_v4_v6_map, flow_sig);
-	}
 
 	return flow_value;
 }

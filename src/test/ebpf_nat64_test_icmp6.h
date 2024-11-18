@@ -15,11 +15,12 @@
 #include "nat64_user_log.h"
 #include "nat64_ebpf_skel_handler.h"
 
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
 
 static uint16_t selected_icmp6_id = 0;
 
-static void craft_ipv6_icmp6_packet(char *packet, size_t *len) {
+static void craft_ipv6_icmp6_packet(char *packet, size_t *len)
+{
 	struct ethhdr *eth = (struct ethhdr *)packet;
 	struct ipv6hdr *ip6 = (struct ipv6hdr *)(packet + sizeof(struct ethhdr));
 	struct icmp6hdr *icmp6 = (struct icmp6hdr *)(packet + sizeof(struct ethhdr) + sizeof(struct ipv6hdr));
@@ -48,7 +49,8 @@ static void craft_ipv6_icmp6_packet(char *packet, size_t *len) {
 	*len = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct icmp6hdr);
 }
 
-static int validate_ipv4_icmp_packet(const char *packet, size_t len) {
+static int validate_ipv4_icmp_packet(const char *packet)
+{
 	const struct ethhdr *eth = (const struct ethhdr *)packet;
 	const struct iphdr *ip4 = (const struct iphdr *)(packet + sizeof(struct ethhdr));
 	const struct icmphdr *icmp = (const struct icmphdr *)(packet + sizeof(struct ethhdr) + sizeof(struct iphdr));
@@ -131,7 +133,7 @@ static void craft_ipv4_icmp_packet(char *packet, size_t *len)
 }
 
 
-static int validate_ipv6_icmp6_packet(const char *packet, size_t len)
+static int validate_ipv6_icmp6_packet(const char *packet)
 {
 	const struct ethhdr *eth = (const struct ethhdr *)packet;
 	const struct ipv6hdr *ip6 = (const struct ipv6hdr *)(packet + sizeof(*eth));
@@ -212,7 +214,7 @@ static int test_icmp6_to_icmp(void)
 		return TEST_ERROR;
 	}
 
-	ret = validate_ipv4_icmp_packet(output, opts.data_size_out);
+	ret = validate_ipv4_icmp_packet(output);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Output validation failed");
 		return TEST_ERROR;
@@ -230,7 +232,7 @@ static int test_icmp6_to_icmp(void)
 		return TEST_ERROR;
 	}
 
-	ret = validate_ipv4_icmp_packet(output, opts.data_size_out);
+	ret = validate_ipv4_icmp_packet(output);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Output validation failed");
 		return TEST_ERROR;
@@ -269,7 +271,7 @@ static int test_icmp_to_icmp6(void)
 		return TEST_ERROR;
 	}
 
-	ret = validate_ipv6_icmp6_packet(output2, opts2.data_size_out);
+	ret = validate_ipv6_icmp6_packet(output2);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Output validation failed");
 		return TEST_ERROR;
@@ -283,14 +285,12 @@ int nat64_test_icmp6(void)
 	int ret;
 
 	ret = test_icmp6_to_icmp();
-	if (NAT64_FAILED(ret)) {
+	if (NAT64_FAILED(ret))
 		return TEST_ERROR;
-	}
 
 	ret = test_icmp_to_icmp6();
-	if (NAT64_FAILED(ret)) {
+	if (NAT64_FAILED(ret))
 		return TEST_ERROR;
-	}
 
 	return TEST_PASS;
 }
