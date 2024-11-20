@@ -161,6 +161,7 @@ int nat64_load_prog_onto_ifaces(void)
 		if (NAT64_FAILED(err))
 			break;
 		attached_iface_cnt++;
+		NAT64_LOG_INFO("Attached xdp prog to interface", NAT64_LOG_VALUE(attach_iface_info[i].iface_index));
 	}
 
 	if (attached_iface_cnt < iface_cnt) {
