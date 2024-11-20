@@ -16,9 +16,8 @@
 static struct nat64_address_ports_range nat64_addr_port_pool[NAT64_ADDR_PORT_POOL_SIZE] = {0};
 static int addr_port_item_cnt = 0;
 
+struct nat64_attach_iface_info attach_iface_info[NAT64_ATTACH_IFACE_MAX_CNT] = {0};
 int attach_iface_cnt = 0;
-int attach_iface_index[NAT64_ATTACH_IFACE_MAX_CNT] = {0};
-
 
 int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
 {
@@ -57,22 +56,21 @@ int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
 }
 
 
-static int parse_attach_iface_str(const char *nat64_attach_iface_str)
+static int parse_attach_iface_str(const char *nat64_attach_iface_str, enum nat64_iface_direction direction)
 {
 	char *iface_str = strdup(nat64_attach_iface_str);
 	char *token, *saveptr;
-	int i = 0;
 
 	token = strtok_r(iface_str, ",", &saveptr);
-	while (token != NULL && i < NAT64_ATTACH_IFACE_MAX_CNT) {
+	while (token != NULL && attach_iface_cnt < NAT64_ATTACH_IFACE_MAX_CNT) {
 		int iface_index = if_nametoindex(token);
 		if (iface_index == 0) {
 			fprintf(stderr, "Error: Interface %s does not exist.\n", token);
 			free(iface_str);
 			return NAT64_ERROR;
 		}
-		attach_iface_index[i] = iface_index;
-		i++;
+		attach_iface_info[attach_iface_cnt].iface_index = iface_index;
+		attach_iface_info[attach_iface_cnt].direction = direction;
 		attach_iface_cnt++;
 		token = strtok_r(NULL, ",", &saveptr);
 	}
@@ -96,9 +94,15 @@ static int convert_parsed_args(void)
 		return NAT64_ERROR;
 	}
 
-	ret = parse_attach_iface_str(nat64_get_attach_iface_str());
+	ret = parse_attach_iface_str(nat64_get_attach_south_iface_str(), NAT64_IFACE_DIRECTION_SOUTH);
 	if (NAT64_FAILED(ret)) {
-		NAT64_LOG_ERROR("Failed to parse attaching interface string");
+		NAT64_LOG_ERROR("Failed to parse attaching southinterface string");
+		return NAT64_ERROR;
+	}
+
+	ret = parse_attach_iface_str(nat64_get_attach_north_iface_str(), NAT64_IFACE_DIRECTION_NORTH);
+	if (NAT64_FAILED(ret)) {
+		NAT64_LOG_ERROR("Failed to parse attaching north interface string");
 		return NAT64_ERROR;
 	}
 
@@ -111,7 +115,7 @@ int nat64_get_parsed_addr_port_cnt(void)
 	return addr_port_item_cnt;
 }
 
-const struct nat64_address_ports_range* nat64_get_parsed_addr_port_pool(void)
+const struct nat64_address_ports_range *nat64_get_parsed_addr_port_pool(void)
 {
 	return nat64_addr_port_pool;
 }
@@ -121,9 +125,9 @@ int nat64_get_parsed_attach_iface_cnt(void)
 	return attach_iface_cnt;
 }
 
-const int* nat64_get_parsed_attach_iface_index(void)
+const struct nat64_attach_iface_info *nat64_get_parsed_attach_iface_info(void)
 {
-	return attach_iface_index;
+	return attach_iface_info;
 }
 
 
@@ -143,10 +147,11 @@ static void print_addr_port_pool(void)
 static void print_iface_indexes(void)
 {
 	int iface_cnt = nat64_get_parsed_attach_iface_cnt();
-	const int *attach_iface_index = nat64_get_parsed_attach_iface_index();
+	const struct nat64_attach_iface_info *attach_iface_info = nat64_get_parsed_attach_iface_info();
 	
 	for (int i = 0; i < iface_cnt; i++)
-		NAT64_LOG_INFO("Added an interface index", NAT64_LOG_IFACE_INDEX(attach_iface_index[i]));
+		NAT64_LOG_INFO("Added an interface index", NAT64_LOG_IFACE_INDEX(attach_iface_info[i].iface_index),
+						NAT64_LOG_VALUE(attach_iface_info[i].direction));
 }
 
 static void print_parsed_results(void)

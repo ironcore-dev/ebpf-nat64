@@ -10,7 +10,8 @@
 
 #define OPT_LOG_LEVEL	"log-level"
 #define OPT_ADDR_PORT_POOL "addr-port-pool"
-#define OPT_ATTACH_IFACE "interface"
+#define OPT_ATTACH_NORTH_IFACE "north-interface"
+#define OPT_ATTACH_SOUTH_IFACE "south-interface"
 #define OPT_ENABLE_SKB_MODE "skb-mode"
 
 /*argument parsing related definitions*/
@@ -22,21 +23,24 @@ static int debug_mode = 0;
 static uint16_t log_level = 0;
 static int enable_skb_mode = 0;
 static char nat64_addr_port_pool_str[256] = {0};
-static char nat64_attach_iface_str[256] = {0};
+static char nat64_attach_north_iface_str[256] = {0};
+static char nat64_attach_south_iface_str[256] = {0};
 
 
 enum {
 	OPT_MIN_NUM = 256,
 	OPT_LOG_LEVEL_NUM,
 	OPT_ADDR_PORT_POOL_NUM,
-	OPT_ATTACH_IFACE_NUM,
+	OPT_ATTACH_SOUTH_IFACE_NUM,
+	OPT_ATTACH_NORTH_IFACE_NUM,
 	OPT_ENABLE_SKB_MODE_NUM,
 };
 
 static const struct option lgopts[] = {
 	{OPT_LOG_LEVEL, 1, 0, OPT_LOG_LEVEL_NUM},
 	{OPT_ADDR_PORT_POOL, 1, 0, OPT_ADDR_PORT_POOL_NUM},
-	{OPT_ATTACH_IFACE, 1, 0, OPT_ATTACH_IFACE_NUM},
+	{OPT_ATTACH_NORTH_IFACE, 1, 0, OPT_ATTACH_NORTH_IFACE_NUM},
+	{OPT_ATTACH_SOUTH_IFACE, 1, 0, OPT_ATTACH_SOUTH_IFACE_NUM},
 	{OPT_ENABLE_SKB_MODE, 0, 0, OPT_ENABLE_SKB_MODE_NUM},
 };
 
@@ -49,7 +53,9 @@ void nat64_print_usage(const char *prgname)
 		" [-D]"
 		" -h"
 		" --log-level (error|warning|info|debug)"
-		""
+		" --addr-port-pool <addr:port-range>"
+		" --north-iface <iface1,iface2,...>"
+		" --south-iface <iface1,iface2,...>"
 		"\n",
 		prgname);
 }
@@ -101,8 +107,11 @@ int nat64_parse_args(int argc, char **argv)
 		case OPT_ADDR_PORT_POOL_NUM:
 			strncpy(nat64_addr_port_pool_str, optarg, 256);
 			break;
-		case OPT_ATTACH_IFACE_NUM:
-			strncpy(nat64_attach_iface_str, optarg, 256);
+		case OPT_ATTACH_SOUTH_IFACE_NUM:
+			strncpy(nat64_attach_south_iface_str, optarg, 256);
+			break;
+		case OPT_ATTACH_NORTH_IFACE_NUM:
+			strncpy(nat64_attach_north_iface_str, optarg, 256);
 			break;
 		case OPT_ENABLE_SKB_MODE_NUM:
 			enable_skb_mode = 1;
@@ -122,14 +131,19 @@ int nat64_parse_args(int argc, char **argv)
 }
 
 
-const char* nat64_get_addr_port_pool_str(void)
+const char *nat64_get_addr_port_pool_str(void)
 {
 	return nat64_addr_port_pool_str;
 }
 
-const char* nat64_get_attach_iface_str(void)
+const char *nat64_get_attach_south_iface_str(void)
 {
-	return nat64_attach_iface_str;
+	return nat64_attach_south_iface_str;
+}
+
+const char *nat64_get_attach_north_iface_str(void)
+{
+	return nat64_attach_north_iface_str;
 }
 
 bool nat64_get_skb_mode(void)

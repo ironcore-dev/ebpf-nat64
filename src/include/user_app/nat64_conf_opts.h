@@ -9,8 +9,9 @@ void nat64_print_usage(const char *prgname);
 
 int nat64_parse_args(int argc, char **argv);
 
-const char* nat64_get_addr_port_pool_str(void);
-const char* nat64_get_attach_iface_str(void);
+const char *nat64_get_addr_port_pool_str(void);
+const char *nat64_get_attach_south_iface_str(void);
+const char *nat64_get_attach_north_iface_str(void);
 bool nat64_get_skb_mode(void);
 __u16 nat64_get_log_level(void);
 

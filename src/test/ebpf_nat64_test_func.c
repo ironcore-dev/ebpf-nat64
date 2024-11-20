@@ -48,7 +48,8 @@ extern int attach_iface_cnt;
 
 static void nat64_test_add_dummy_iface(void)
 {
-	attach_iface_index[0] = 1;
+	attach_iface_info[0].iface_index = 1;
+	attach_iface_info[0].direction = NAT64_IFACE_DIRECTION_SOUTH;
 	attach_iface_cnt = 1;
 }
 
