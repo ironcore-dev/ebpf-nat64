@@ -11,6 +11,7 @@
 #include "nat64_user_log.h"
 #include "nat64_addr_port_assignment.h"
 #include "nat64_table_tuple.h"
+#include "nat64_conf.h"
 
 
 const union ipv6_addr nat64_ipv6_prefix = {
@@ -263,14 +264,15 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 static int init_iface_addr_port_assignment(void) {
 
 	int iface_cnt = nat64_get_parsed_attach_iface_cnt();
-	const int *attach_iface_index = nat64_get_parsed_attach_iface_index();
+	const struct nat64_attach_iface_info *attach_iface_info = nat64_get_parsed_attach_iface_info();
 	
 	srand(time(NULL));  // Initialize random seed
 
 	for (int i = 0; i < iface_cnt; i++) {
 		// TODO: differentiate the inner-facing and outer-facing interfaces later
-		if (compute_and_update_addr_port_assignment(attach_iface_index[i]) != 0) {
-			fprintf(stderr, "Failed to initialize NAT64 assignment for interface %u\n", attach_iface_index[i]);
+		if (attach_iface_info[i].direction == NAT64_IFACE_DIRECTION_SOUTH &&
+			compute_and_update_addr_port_assignment(attach_iface_info[i].iface_index) != 0) {
+			fprintf(stderr, "Failed to initialize NAT64 assignment for interface %u\n", attach_iface_info[i].iface_index);
 			return NAT64_ERROR;
 		}
 	}

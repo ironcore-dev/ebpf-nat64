@@ -151,13 +151,13 @@ int nat64_load_prog_onto_ifaces(void)
 	int err;
 	int attached_iface_cnt = 0;
 	int iface_cnt = nat64_get_parsed_attach_iface_cnt();
-	const int *attach_iface_index = nat64_get_parsed_attach_iface_index();
+	const struct nat64_attach_iface_info *attach_iface_info = nat64_get_parsed_attach_iface_info();
 
 	xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
 	xdp_flags |= nat64_get_skb_mode()? XDP_FLAGS_SKB_MODE : XDP_FLAGS_DRV_MODE;
 
 	for (int i = 0; i < iface_cnt; i++) {
-		err = nat64_attach_prog_skeleton_to_iface(attach_iface_index[i], xdp_flags);
+		err = nat64_attach_prog_skeleton_to_iface(attach_iface_info[i].iface_index, xdp_flags);
 		if (NAT64_FAILED(err))
 			break;
 		attached_iface_cnt++;
@@ -166,7 +166,7 @@ int nat64_load_prog_onto_ifaces(void)
 	if (attached_iface_cnt < iface_cnt) {
 		NAT64_LOG_ERROR("Failed to attach xdp prog to all interfaces, detaching...");
 		for (int i = 0; i < attached_iface_cnt; i++) {
-			if (NAT64_FAILED(nat64_detach_prog_skeleton_from_iface(attach_iface_index[i], xdp_flags)))
+			if (NAT64_FAILED(nat64_detach_prog_skeleton_from_iface(attach_iface_info[i].iface_index, xdp_flags)))
 				continue;
 		}
 		return NAT64_ERROR;
@@ -177,14 +177,14 @@ int nat64_load_prog_onto_ifaces(void)
 void nat64_unload_prog_from_ifaces(void)
 {
 	int iface_cnt = nat64_get_parsed_attach_iface_cnt();
-	const int *attach_iface_index = nat64_get_parsed_attach_iface_index();
+	const struct nat64_attach_iface_info *attach_iface_info = nat64_get_parsed_attach_iface_info();
 
 	// Detach the XDP program from each interface
 	for (int i = 0; i < iface_cnt; i++) {
-		if (NAT64_FAILED(nat64_detach_prog_skeleton_from_iface(attach_iface_index[i], xdp_flags)))
-			NAT64_LOG_ERROR("Failed to detach XDP program from interface", NAT64_LOG_VALUE(attach_iface_index[i]));
+		if (NAT64_FAILED(nat64_detach_prog_skeleton_from_iface(attach_iface_info[i].iface_index, xdp_flags)))
+			NAT64_LOG_ERROR("Failed to detach XDP program from interface", NAT64_LOG_VALUE(attach_iface_info[i].iface_index));
 		else
-			NAT64_LOG_INFO("Detached XDP program from interface", NAT64_LOG_VALUE(attach_iface_index[i]));
+			NAT64_LOG_INFO("Detached XDP program from interface", NAT64_LOG_VALUE(attach_iface_info[i].iface_index));
 	}
 }
 
