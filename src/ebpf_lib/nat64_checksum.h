@@ -10,7 +10,6 @@
 
 #include "../include/nat64_common.h"
 
-
 /** helper functions copied from https://github.com/cilium/cilium/blob/main/bpf/include/bpf/csum.h **/
 static __always_inline __u16 csum_fold(__u32 csum)
 {

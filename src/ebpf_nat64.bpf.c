@@ -13,8 +13,6 @@
 
 #include "nat64_kern.h"
 
-
-
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u32); // IPv4 address
@@ -29,9 +27,6 @@ struct {
 	__type(value, __u8);
 	__uint(max_entries, NAT64_MAX_ADDR_PORT_IN_USE);
 } nat64_address_port_in_use_map SEC(".maps"); // only used by userspace prog
-
-
-static __u8 flag;
 
 static __always_inline int
 process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
@@ -52,7 +47,6 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 	ret = fill_flow_signature(&flow_sig, data_end, NAT64_IP_VERSION_V6, (void *)ipv6_hdr, ipv6_hdr->nexthdr, (void *)(ipv6_hdr + 1));
 	if (NAT64_FAILED(ret))
 		return NAT64_ERROR;
-		
 
 	flow_value = bpf_map_lookup_elem(&nat64_v6_v4_map, &flow_sig);
 

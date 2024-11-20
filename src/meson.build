@@ -13,7 +13,8 @@ bpf_kern_header_files = [
 	'ebpf_lib/nat64_checksum.h',
 	'ebpf_lib/nat64_kern_log.h',
 	'ebpf_lib/nat64_flow_handling.h',
-	'ebpf_lib/nat64_tcp_state_tracking.h'
+	'ebpf_lib/nat64_tcp_state_tracking.h',
+	'ebpf_lib/nat64_profile.h',
 ] #header files used to compile the BPF kernel program
 
 
