@@ -365,3 +365,48 @@ void nat64_kernel_log_printer_loop_exit(void)
 	kernel_log_printer_running = false;
 }
 
+int nat64_libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
+{
+	uint16_t current_log_level = nat64_get_log_level();
+	FILE *f;
+	char timestamp[TIMESTAMP_MAXSIZE];
+	char escaped[3072];
+	uint16_t nat64_level;
+
+	switch (level) {
+	case LIBBPF_WARN:
+		if (current_log_level < NAT64_LOG_LEVEL_WARNING)
+			return 0;
+		nat64_level = NAT64_LOG_LEVEL_WARNING;
+		break;
+	case LIBBPF_INFO:
+		if (current_log_level < NAT64_LOG_LEVEL_INFO)
+			return 0;
+		nat64_level = NAT64_LOG_LEVEL_INFO;
+		break;
+	case LIBBPF_DEBUG:
+		if (current_log_level < NAT64_LOG_LEVEL_DEBUG)
+			return 0;
+		nat64_level = NAT64_LOG_LEVEL_DEBUG;
+		break;
+	default:
+		return 0;
+	}
+
+	if (NAT64_FAILED(get_timestamp(timestamp)))
+		memcpy(timestamp, TIMESTAMP_NUL, TIMESTAMP_MAXSIZE);
+
+	f = stdout;
+	flockfile(f);
+
+	fprintf(f, FORMAT_HEADER, timestamp,
+			log_levels[nat64_level], "LIBBPF",
+			escape_message("", escaped, sizeof(escaped)));
+
+	vfprintf(f, format, args);
+
+	fflush(f);
+	funlockfile(f);
+
+	return 0;
+}

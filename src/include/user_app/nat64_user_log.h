@@ -2,6 +2,7 @@
 #define NAT64_USER_LOG_H
 
 #include "nat64_log_common.h"
+#include <bpf/libbpf.h>
 
 #define NAT64_LOG_SOURCE_KERNEL	0
 #define NAT64_LOG_SOURCE_USER	1
@@ -60,5 +61,6 @@ void nat64_macro_log(unsigned int level, unsigned int log_source,
 void nat64_kernel_log_printer_loop_exit(void);
 void *nat64_thread_process_kernel_log_event(void *arg);
 void nat64_set_log_level(uint16_t log_level);
+int nat64_libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args);
 
 #endif
