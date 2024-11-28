@@ -14,13 +14,6 @@
 
 #include "nat64_user.h"
 
-
-static int libbpf_print_fn(enum libbpf_print_level level __attribute__((unused)), const char *format, va_list args)
-{
-	return vfprintf(stderr, format, args);
-}
-
-
 static void process_stop_signal(int signum __attribute__((unused)))
 {
 	
@@ -42,7 +35,7 @@ int main(int argc, char **argv)
 	if(NAT64_FAILED(ret))
 		return 1;
 	
-	libbpf_set_print(libbpf_print_fn);
+	libbpf_set_print(nat64_libbpf_print_fn);
 
 	signal(SIGINT, process_stop_signal);
 
