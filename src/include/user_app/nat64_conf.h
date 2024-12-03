@@ -4,7 +4,6 @@
 #include "nat64_common.h"
 #include "nat64_conf_opts.h"
 
-
 enum nat64_iface_direction {
 	NAT64_IFACE_DIRECTION_NORTH, // internet facing
 	NAT64_IFACE_DIRECTION_SOUTH, // private network facing

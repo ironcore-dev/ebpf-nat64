@@ -1,0 +1,27 @@
+name: checkpatch
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'bpftools/**'
+      - 'libbpf/**'
+      - 'vmlinux/**'
+      - 'code_check/**'
+  workflow_dispatch:
+
+jobs:
+  checkpatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Run checkpatch download
+        continue-on-error: true
+        run: |
+          ./code_check/check.sh -d >/dev/null 2>&1
+      - name: Run checkpatch
+        run: ./code_check/check.sh -t check

@@ -31,6 +31,12 @@ int main(int argc, char **argv)
 {
 	int ret = 0;
 
+	ret = nat64_parse_config_file(getenv("NAT64_CONF_FILE"));
+	if (NAT64_FAILED(ret)) {
+		NAT64_LOG_ERROR("Failed to parse config file");
+		return 1;
+	}
+
 	ret = nat64_get_cmd_conf(argc, argv);
 	if(NAT64_FAILED(ret))
 		return 1;
