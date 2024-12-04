@@ -53,6 +53,7 @@ struct nat64_ipv6_new_flow_event {
 
 struct nat64_kernel_config {
 	__u8 log_level;
+	__u8 disable_cksum_recalc;
 };
 
 

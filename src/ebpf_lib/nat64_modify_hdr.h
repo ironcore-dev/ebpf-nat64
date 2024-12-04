@@ -91,7 +91,10 @@ convert_tcp_udp_proto_port(struct xdp_md *ctx, struct ipv6hdr *ipv6_hdr, struct 
 				new_port = flow_value->port.original_port;
 				tcp_hdr->dest = new_port;
 			}
-			tcp_hdr->check = update_tcp_udp_checksum(tcp_hdr->check, old_port, new_port, ipv6_hdr, ipv4_hdr, direction);
+			if (!__is_cksum_recalc_disabled)
+				tcp_hdr->check = update_tcp_udp_checksum(tcp_hdr->check, old_port, new_port, ipv6_hdr, ipv4_hdr, direction);
+			else
+				tcp_hdr->check = 0;
 			break;
 		}
 		case IPPROTO_UDP: {
@@ -105,7 +108,10 @@ convert_tcp_udp_proto_port(struct xdp_md *ctx, struct ipv6hdr *ipv6_hdr, struct 
 				new_port = flow_value->port.original_port;
 				udp_hdr->dest = new_port;
 			}
-			udp_hdr->check = update_tcp_udp_checksum(udp_hdr->check, old_port, new_port, ipv6_hdr, ipv4_hdr, direction);
+			if (!__is_cksum_recalc_disabled)
+				udp_hdr->check = update_tcp_udp_checksum(udp_hdr->check, old_port, new_port, ipv6_hdr, ipv4_hdr, direction);
+			else
+				udp_hdr->check = 0;
 			break;
 		}
 		default:
