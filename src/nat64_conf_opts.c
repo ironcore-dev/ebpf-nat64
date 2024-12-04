@@ -8,12 +8,13 @@
 #include "nat64_log_common.h"
 #include "nat64_user_log.h"
 
+#define OPT_DISPLAY_HELP "help"
 #define OPT_LOG_LEVEL	"log-level"
 #define OPT_ADDR_PORT_POOL "addr-port-pool"
 #define OPT_ATTACH_NORTH_IFACE "north-interface"
 #define OPT_ATTACH_SOUTH_IFACE "south-interface"
 #define OPT_ENABLE_SKB_MODE "skb-mode"
-#define OPT_HELP "help"
+#define OPT_DISABLE_CKSUM_RECALC "disable-cksum-recalc"
 
 /*argument parsing related definitions*/
 static const char short_options[] = "d" /* debug */
@@ -21,29 +22,32 @@ static const char short_options[] = "d" /* debug */
 				"h";
 
 static int log_level = 0;
-static int enable_skb_mode = 0;
-static char nat64_addr_port_pool_str[256] = {0};
+static bool enable_skb_mode = 0;
 static char nat64_attach_north_iface_str[256] = {0};
 static char nat64_attach_south_iface_str[256] = {0};
+static char nat64_addr_port_pool_str[256] = {0};
+static bool disable_cksum_recalc = 0;
 
 
 enum {
 	OPT_MIN_NUM = 256,
+	OPT_DISPLAY_HELP_NUM,
 	OPT_LOG_LEVEL_NUM,
 	OPT_ADDR_PORT_POOL_NUM,
 	OPT_ATTACH_SOUTH_IFACE_NUM,
 	OPT_ATTACH_NORTH_IFACE_NUM,
 	OPT_ENABLE_SKB_MODE_NUM,
-	OPT_HELP_NUM,
+	OPT_DISABLE_CKSUM_RECALC_NUM,
 };
 
 static const struct option nat64_conf_longopts[] = {
+	{OPT_DISPLAY_HELP, 0, 0, OPT_DISPLAY_HELP_NUM},
 	{OPT_LOG_LEVEL, 1, 0, OPT_LOG_LEVEL_NUM},
 	{OPT_ADDR_PORT_POOL, 1, 0, OPT_ADDR_PORT_POOL_NUM},
 	{OPT_ATTACH_NORTH_IFACE, 1, 0, OPT_ATTACH_NORTH_IFACE_NUM},
 	{OPT_ATTACH_SOUTH_IFACE, 1, 0, OPT_ATTACH_SOUTH_IFACE_NUM},
 	{OPT_ENABLE_SKB_MODE, 0, 0, OPT_ENABLE_SKB_MODE_NUM},
-	{OPT_HELP, 0, 0, OPT_HELP_NUM},
+	{OPT_DISABLE_CKSUM_RECALC, 0, 0, OPT_DISABLE_CKSUM_RECALC_NUM},
 };
 
 
@@ -51,11 +55,12 @@ void nat64_print_usage(const char *prgname)
 {
 	fprintf(stderr,
 		"%s --"
-		" -h or --help"
+		" --help [-h]"
 		" --log-level (error|warning|info|debug)"
 		" --addr-port-pool <addr:port-range>"
 		" --north-iface <iface1,iface2,...>"
 		" --south-iface <iface1,iface2,...>"
+		" --disable-cksum-recalc"
 		"\n",
 		prgname);
 }
@@ -90,7 +95,7 @@ int nat64_parse_args(int argc, char **argv)
 
 		switch (opt) {
 		case 'h':
-		case OPT_HELP_NUM:
+		case OPT_DISPLAY_HELP_NUM:
 			nat64_print_usage(prgname);
 			return NAT64_ERROR;
 		case OPT_LOG_LEVEL_NUM:
@@ -117,6 +122,9 @@ int nat64_parse_args(int argc, char **argv)
 			break;
 		case OPT_ENABLE_SKB_MODE_NUM:
 			enable_skb_mode = 1;
+			break;
+		case OPT_DISABLE_CKSUM_RECALC_NUM:
+			disable_cksum_recalc = 1;
 			break;
 		default:
 			nat64_print_usage(prgname);
@@ -206,6 +214,9 @@ static int parse_line(char *line, int lineno)
 	case OPT_ENABLE_SKB_MODE_NUM:
 		enable_skb_mode = 1;
 		break;
+	case OPT_DISABLE_CKSUM_RECALC_NUM:
+		disable_cksum_recalc = 1;
+		break;
 	default:
 		NAT64_LOG_ERROR("Config file: unknown option '%s'", key);
 		ret = NAT64_ERROR;
@@ -272,6 +283,11 @@ const char *nat64_get_attach_north_iface_str(void)
 bool nat64_get_skb_mode(void)
 {
 	return enable_skb_mode;
+}
+
+bool nat64_get_disable_cksum_recalc_flag(void)
+{
+	return disable_cksum_recalc;
 }
 
 uint16_t nat64_get_log_level(void)
