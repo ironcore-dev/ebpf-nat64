@@ -1,25 +1,15 @@
 # Overview
-This is a NAT64 implementation using eBPF, which runs on one data center router. It translates outgoing IPv6 packets targeting the special IPv6 prefixed address (64::ff9b::/64) to IPv4 packets and vice versa.
+This is a NAT64 implementation using eBPF, which runs on one data center router. It translates outgoing IPv6 packets targeting the special IPv6 prefixed address (64::ff9b::/64) to IPv4 packets and vice versa. Compared with the state-of-the-art implementation, such as [Tundra-nat64](https://github.com/vitlabuda/tundra-nat64), one of the advantages is that, ebpf-nat64 does not just support NAT64 on a single host. It is designed to run on a gateway router and multiplex a NAT64's address by using a pool of transport layer ports.
 
-# Getting Started
-In order to compile and run the program, you need to install the dependencies by running:
-```
-sudo apt install meson ninja-build clang libbpf-dev linux-headers-$(uname -r)
-```
+# Documentation
+For more details please refer to documentation folder [docs](./docs).
 
-After installing the dependencies, you can compile and run the program by running the following commands:
-```
-git submodule update --init --recursive
-meson build
-ninja -C build
-```
-It is going to generate a `build` directory containing the compiled program for both execution and testing.
+## Contributing
+We`d love to get a feedback from you.
+Please report bugs, suggestions or post question by opening a [Github issue](https://github.com/ironcore-dev/ebpf-nat64/issues)
 
-To execute the program, you need to specify the address and port pool for the NAT64 prefix. You also need to specify the interfaces to run the program. Normally, the interfaces are the physical interfaces of the router that connect to the Internet and the private network. For example, if you want to attach the program to the interfaces `enp59s0f0np0` and `enp59s0f1np1`, and use the exposed IPv4 address 5.5.5.5 for the NAT64 address and the port range 10000-30000 for the translated ports, you can run the following command:
-```
-sudo ./build/src/ebpf_nat64 --addr-port-pool 5.5.5.5:10000-30000 --north-interface internet-iface --south-interface intranet-iface --log-level [error/warning/info/debug]
-```
+## License
+[Apache License 2.0](/LICENSE)
 
-Press `Ctrl-C` to terminate the program.
 
 
