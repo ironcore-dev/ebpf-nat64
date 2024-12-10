@@ -20,7 +20,7 @@ static const char short_options[] = "d" /* debug */
 				"D"	 /* debug */
 				"h";
 
-static uint16_t log_level = 0;
+static int log_level = 0;
 static int enable_skb_mode = 0;
 static char nat64_addr_port_pool_str[256] = {0};
 static char nat64_attach_north_iface_str[256] = {0};
