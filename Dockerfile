@@ -12,8 +12,8 @@ RUN apt-get update && \
 					ninja-build \
 					ca-certificates \
 					libbpf-dev \
-					gcc-multilib
-
+					gcc-multilib \
+					iproute2
 
 COPY .git .git
 COPY .gitmodules .gitmodules
