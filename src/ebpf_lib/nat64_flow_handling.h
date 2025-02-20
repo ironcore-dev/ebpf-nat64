@@ -185,12 +185,12 @@ process_nat64_new_outgoing_ipv6_flow(__u32 iface_index,
 							const struct nat64_table_tuple *outgoing_flow_sig, struct nat64_table_value *outgoing_flow_value)
 {
 	struct nat64_address_port_assignment *assignment;
-	struct nat64_address_port_item *item;
+	struct nat64_address_port_item *item = NULL;
 
 	int ret;
 	
 	bool new_flow_event_sent = false;
-	bool succeed = false;
+	bool succeed, found_unused_item = false;
 
 	for (int i = 0; i < NAT64_ADDR_PORT_ASSIGNMENT_FETCH_RETRY; i++) {
 		// Lookup the assignment for the given interface
@@ -201,8 +201,15 @@ process_nat64_new_outgoing_ipv6_flow(__u32 iface_index,
 		}
 		// Acquire the spinlock
 		bpf_spin_lock(&assignment->item_semaphore);
-		if (assignment->address_port_item.used) {
-			// Release the spinlock
+		for (int j = 0; j < NAT64_ADDR_PORT_ASSIGNMENT_POOL_SIZE; j++) {
+			if (!assignment->address_port_item[j].used) {
+				item = &assignment->address_port_item[j];
+				found_unused_item = true;
+				break;
+			}
+		}
+
+		if (!found_unused_item) {
 			bpf_spin_unlock(&assignment->item_semaphore);
 			if (!new_flow_event_sent) {
 				ret = send_new_flow_event(iface_index);
@@ -214,31 +221,34 @@ process_nat64_new_outgoing_ipv6_flow(__u32 iface_index,
 			}
 			continue;
 		}
-		item = &assignment->address_port_item;
 
-		// Assign the NAT64 address and port
-		outgoing_flow_value->addr.nat64_v4_addr = item->nat_addr;
-		outgoing_flow_value->port.nat64_port = bpf_htons(item->nat_port);
-		item->used = 1;
-		// Release the spinlock
-		bpf_spin_unlock(&assignment->item_semaphore);
+		if (item) {
+			// Assign the NAT64 address and port
+			outgoing_flow_value->addr.nat64_v4_addr = item->nat_addr;
+			outgoing_flow_value->port.nat64_port = bpf_htons(item->nat_port);
+			item->used = 1;
+			// Release the spinlock
+			bpf_spin_unlock(&assignment->item_semaphore);
 
-		NAT64_LOG_DEBUG("Fetched NAT64 address and port", NAT64_LOG_IPV4(outgoing_flow_value->addr.nat64_v4_addr),
-						NAT64_LOG_PORT(bpf_ntohs(outgoing_flow_value->port.nat64_port)));
+			NAT64_LOG_DEBUG("Fetched NAT64 address and port", NAT64_LOG_IPV4(outgoing_flow_value->addr.nat64_v4_addr),
+							NAT64_LOG_PORT(bpf_ntohs(outgoing_flow_value->port.nat64_port)));
 
-		ret = send_new_flow_event(iface_index);
-		if (NAT64_FAILED(ret)) {
-			NAT64_LOG_ERROR("Failed to send a new flow event", NAT64_LOG_IFACE_INDEX(iface_index));
-			return NAT64_ERROR;
+			ret = send_new_flow_event(iface_index);
+			if (NAT64_FAILED(ret)) {
+				NAT64_LOG_ERROR("Failed to send a new flow event", NAT64_LOG_IFACE_INDEX(iface_index));
+				return NAT64_ERROR;
+			}
+
+			ret = store_nat64_flow_records(outgoing_flow_sig, outgoing_flow_value);
+			if (NAT64_FAILED(ret)) {
+				NAT64_LOG_ERROR("Failed to store nat64 flow records");
+				return NAT64_ERROR;
+			}
+
+			succeed = true;
+			break;
 		}
 
-		ret = store_nat64_flow_records(outgoing_flow_sig, outgoing_flow_value);
-		if (NAT64_FAILED(ret)) {
-			NAT64_LOG_ERROR("Failed to store nat64 flow records");
-			return NAT64_ERROR;
-		}
-
-		succeed = true;
 	}
 
 	if (!succeed) {
