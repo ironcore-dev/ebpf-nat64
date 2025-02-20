@@ -7,6 +7,7 @@
 
 #include <linux/bpf.h>
 
+#define NAT64_ADDR_PORT_ASSIGNMENT_POOL_SIZE 4
 
 struct nat64_address_ports_range {
 	__u32 addr;
@@ -21,7 +22,8 @@ struct nat64_address_port_item {
 
 struct nat64_address_port_assignment {
 	struct bpf_spin_lock item_semaphore;
-	struct nat64_address_port_item address_port_item; // increasing the number of this items could enhance the capability of peak flow handling
+	// increasing the number of this items could enhance the capability of peak flow handling
+	struct nat64_address_port_item address_port_item[NAT64_ADDR_PORT_ASSIGNMENT_POOL_SIZE];
 };
 
 #endif /* __NAT64_ADDR_PORT_ASSIGNMENT_H */
