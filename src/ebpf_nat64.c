@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 		NAT64_LOG_ERROR("Failed to initialize prog map fds");
 		goto delete_prog;
 	}
-	
+
 	ret = nat64_addr_port_manage_init();
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to initialize addr port manage");

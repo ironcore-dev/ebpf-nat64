@@ -18,7 +18,7 @@ struct {
 	__type(key, __u32); // IPv4 address
 	__type(value, struct nat64_address_ports_range);
 	__uint(max_entries, NAT64_ADDR_PORT_POOL_SIZE);
-} nat64_address_port_range_map SEC(".maps"); // only used by userspace prog
+} nat64_addr_port_range_map SEC(".maps"); // only used by userspace prog
 
 
 struct {
@@ -26,7 +26,7 @@ struct {
 	__type(key, struct nat64_address_port_item);
 	__type(value, __u8);
 	__uint(max_entries, NAT64_MAX_ADDR_PORT_IN_USE);
-} nat64_address_port_in_use_map SEC(".maps"); // only used by userspace prog
+} nat64_alloc_map SEC(".maps"); // only used by userspace prog
 
 static __always_inline int
 process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
@@ -57,8 +57,10 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 		ret = process_nat64_new_outgoing_ipv6_flow(ctx->ingress_ifindex, &flow_sig, flow_value);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to fetch an assigned nat64 addr and port");
+			nat64_exporter_increment_drop_flows();
 			return NAT64_ERROR;
 		}
+		nat64_exporter_increment_accepted_flows();
 	}
 
 	// Update the last seen timestamp
@@ -145,8 +147,10 @@ SEC("xdp.frags")
 int xdp_nat64_frags(struct xdp_md *ctx)
 {
 	load_kernel_config();
-	if (NAT64_FAILED(nat64_parse_l2(ctx)))
+	if (NAT64_FAILED(nat64_parse_l2(ctx))) {
+		nat64_exporter_increment_drop_pkts();
 		return XDP_DROP;
+	}
 	else
 		return XDP_PASS;
 }
@@ -155,8 +159,10 @@ SEC("xdp")
 int xdp_nat64(struct xdp_md *ctx)
 {
 	load_kernel_config();
-	if (NAT64_FAILED(nat64_parse_l2(ctx)))
+	if (NAT64_FAILED(nat64_parse_l2(ctx))) {
+		nat64_exporter_increment_drop_pkts();
 		return XDP_DROP;
+	}
 	else
 		return XDP_PASS;
 }

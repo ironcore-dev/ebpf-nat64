@@ -1,7 +1,6 @@
 #ifndef NAT64_KERN_LOG_H
 #define NAT64_KERN_LOG_H
 
-#include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
 #include "nat64_common.h"

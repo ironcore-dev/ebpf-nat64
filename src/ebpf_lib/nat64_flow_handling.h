@@ -31,7 +31,7 @@ struct {
 	__type(value, struct nat64_address_port_assignment);
 	__uint(max_entries, NAT64_ATTACH_IFACE_MAX_CNT);
 	__uint(pinning, LIBBPF_PIN_BY_NAME);
-} nat64_address_assignment_map SEC(".maps");
+} nat64_addr_assignment_map SEC(".maps");
 
 struct {
   __uint (type, BPF_MAP_TYPE_RINGBUF);
@@ -194,7 +194,7 @@ process_nat64_new_outgoing_ipv6_flow(__u32 iface_index,
 
 	for (int i = 0; i < NAT64_ADDR_PORT_ASSIGNMENT_FETCH_RETRY; i++) {
 		// Lookup the assignment for the given interface
-		assignment = bpf_map_lookup_elem(&nat64_address_assignment_map, &iface_index);
+		assignment = bpf_map_lookup_elem(&nat64_addr_assignment_map, &iface_index);
 		if (!assignment) {
 			NAT64_LOG_ERROR("No NAT64 address assignment found for interface", NAT64_LOG_IFACE_INDEX(iface_index));
 			return NAT64_ERROR;

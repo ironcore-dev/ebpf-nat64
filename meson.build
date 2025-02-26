@@ -100,5 +100,5 @@ bpftool = custom_target('bpftool',
 	depends : bpftool_build
 )
 
-# subdir('src')
+subdir('src')
 subdir('exporter')

@@ -8,7 +8,6 @@
 #include <linux/ip.h>
 #include <bpf/bpf_endian.h>
 
-
 #define NAT64_IPV6_ADDR_LENGTH 16
 
 union ipv6_addr {

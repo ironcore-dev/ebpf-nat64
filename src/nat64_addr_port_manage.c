@@ -61,7 +61,7 @@ static int populate_addr_port_range_map(void)
 		range.port_range[1] = nat64_addr_port_pool[i].port_range[1];
 
 		// Update the map
-		ret = bpf_map_update_elem(nat64_get_address_port_range_map_fd(), &ipv4_addr, &range, BPF_NOEXIST);
+		ret = bpf_map_update_elem(nat64_get_addr_port_range_map_fd(), &ipv4_addr, &range, BPF_NOEXIST);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to initialize address port range map", NAT64_LOG_IPV4(ipv4_addr),
 							NAT64_LOG_MIN_PORT(range.port_range[0]), NAT64_LOG_MAX_PORT(range.port_range[1]),
@@ -86,7 +86,7 @@ static int init_addr_port_assignment_map(__u32 iface_index, __u32 addr, __u16 po
 	new_assignment.address_port_item.nat_port = port;
 	new_assignment.address_port_item.used = 0;  // Set to unused
 
-	ret = bpf_map_update_elem(nat64_get_address_assignment_map_fd(), &iface_index, &new_assignment, BPF_NOEXIST);
+	ret = bpf_map_update_elem(nat64_get_addr_assignment_map_fd(), &iface_index, &new_assignment, BPF_NOEXIST);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to add new address port assignment item", NAT64_LOG_IFACE_INDEX(iface_index),
 						NAT64_LOG_IPV4(addr), NAT64_LOG_PORT(port), NAT64_LOG_ERRNO(ret));
@@ -115,7 +115,7 @@ static bool is_addr_port_in_use(__u32 addr, __u16 port) {
 	key.nat_port = port;
 
 	pthread_mutex_lock(&addr_port_in_use_map_mutex);
-	ret = bpf_map_lookup_elem_flags(nat64_get_address_port_in_use_map_fd(), &key, &dummy, 0);
+	ret = bpf_map_lookup_elem_flags(nat64_get_alloc_map_fd(), &key, &dummy, 0);
 	pthread_mutex_unlock(&addr_port_in_use_map_mutex);
 	
 	if (NAT64_FAILED(ret)) {
@@ -141,7 +141,7 @@ static int add_addr_port_to_in_use(__u32 addr, __u16 port) {
 	key.nat_port = port;
 
 	pthread_mutex_lock(&addr_port_in_use_map_mutex);
-	ret = bpf_map_update_elem(nat64_get_address_port_in_use_map_fd(), &key, &dummy, BPF_NOEXIST);
+	ret = bpf_map_update_elem(nat64_get_alloc_map_fd(), &key, &dummy, BPF_NOEXIST);
 	pthread_mutex_unlock(&addr_port_in_use_map_mutex);
 
 	if (NAT64_FAILED(ret)) {
@@ -159,9 +159,9 @@ static int add_addr_port_to_in_use(__u32 addr, __u16 port) {
 // Helper function to get the next available NAT64 IP address
 static __u32 get_next_nat64_ip(__u32 current_ip) {
 	__u32 next_key;
-	if (bpf_map_get_next_key(nat64_get_address_port_range_map_fd(), &current_ip, &next_key) != 0) {
+	if (bpf_map_get_next_key(nat64_get_addr_port_range_map_fd(), &current_ip, &next_key) != 0) {
 		// If there's no next key, wrap around to the first key
-		bpf_map_get_next_key(nat64_get_address_port_range_map_fd(), NULL, &next_key);
+		bpf_map_get_next_key(nat64_get_addr_port_range_map_fd(), NULL, &next_key);
 	}
 	return next_key;
 }
@@ -177,7 +177,7 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 
 	do {
 		// Get the port range for the current NAT64 IP
-		ret = bpf_map_lookup_elem(nat64_get_address_port_range_map_fd(), &nat64_ip_in_use, &range);
+		ret = bpf_map_lookup_elem(nat64_get_addr_port_range_map_fd(), &nat64_ip_in_use, &range);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to get port range for current NAT64 IP", NAT64_LOG_IPV4(nat64_ip_in_use),
 							NAT64_LOG_ERRNO(ret));
@@ -215,7 +215,7 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 	}
 
 	// Look up the existing assignment, if not initialize the first assignment for the interface
-	ret = bpf_map_lookup_elem_flags(nat64_get_address_assignment_map_fd(), &iface_index, &assignment, BPF_F_LOCK);
+	ret = bpf_map_lookup_elem_flags(nat64_get_addr_assignment_map_fd(), &iface_index, &assignment, BPF_F_LOCK);
 	if (NAT64_FAILED(ret)) {
 		if (ret == -ENOENT) {
 			// If not found, create a new assignment
@@ -234,7 +234,6 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 		return NAT64_ERROR;
 	}
 
-	// Acquire the spinlock
 	if (!assignment.address_port_item.used)// if this assignment is not used. just return.
 		return NAT64_OK;
 
@@ -243,7 +242,7 @@ static int compute_and_update_addr_port_assignment(__u32 iface_index) {
 	new_assignment.address_port_item.nat_port = chosen_port;
 	new_assignment.address_port_item.used = 0;  // Set to unused
 
-	ret = bpf_map_update_elem(nat64_get_address_assignment_map_fd(), &iface_index, &new_assignment, BPF_F_LOCK | BPF_ANY);
+	ret = bpf_map_update_elem(nat64_get_addr_assignment_map_fd(), &iface_index, &new_assignment, BPF_F_LOCK | BPF_ANY);
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to update address port assignment map for an interface", NAT64_LOG_IFACE_INDEX(iface_index),
 						NAT64_LOG_ERRNO(ret));
@@ -315,7 +314,7 @@ static int remove_allocated_addr_port(const struct nat64_table_value *value)
 	key.nat_port = bpf_ntohs(value->port.nat64_port);
 
 	pthread_mutex_lock(&addr_port_in_use_map_mutex);
-	ret = bpf_map_delete_elem(nat64_get_address_port_in_use_map_fd(), &key);
+	ret = bpf_map_delete_elem(nat64_get_alloc_map_fd(), &key);
 	pthread_mutex_unlock(&addr_port_in_use_map_mutex);
 	
 	if (NAT64_FAILED(ret)) {

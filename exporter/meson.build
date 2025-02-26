@@ -2,7 +2,7 @@
 exporter_bpf2go = custom_target('exporter_bpf2go',
 	input : ['exporter.bpf.c'],
 	output : 'exporter_bpfel.go',
-	command : [bpf2go, '-cc', 'clang', '-cflags', '-O2 -g -Wall',
+	command : [bpf2go, '-cc', 'clang', '-cflags', '-O2 -g -Wall ' + '-I' + meson.current_source_dir() / '../src/include',
 				'-target', 'bpfel',
 				'exporter', '@INPUT@', '--', clang_includes],
 	depends : [],
@@ -11,9 +11,8 @@ exporter_bpf2go = custom_target('exporter_bpf2go',
 	build_by_default : true
 )
 
-
 exporter_go = custom_target('exporter_go',
-	input: ['exporter.go', exporter_bpf2go],
+	input: ['exporter.go', exporter_bpf2go, 'exporter.bpf.c'],
 	output: 'exporter',
 	command: ['sh', '-c',
 		'''
