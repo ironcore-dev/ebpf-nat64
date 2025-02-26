@@ -1,8 +1,6 @@
 #ifndef NAT64_COMMON_H
 #define NAT64_COMMON_H
 
-#include <stdlib.h>
-#include <stdbool.h>
 #include <bpf/bpf_endian.h>
 
 #include "nat64_ipaddr.h"

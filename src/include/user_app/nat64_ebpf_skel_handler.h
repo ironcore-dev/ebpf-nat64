@@ -6,14 +6,15 @@
 #define NAT64_SHARED_MAP_PIN_PATH "/sys/fs/bpf"
 
 #define NAT64_MAP_FACTORY(GENERATOR) \
-	GENERATOR(address_port_range_map) \
-	GENERATOR(address_assignment_map) \
-	GENERATOR(address_port_in_use_map) \
+	GENERATOR(addr_port_range_map) \
+	GENERATOR(addr_assignment_map) \
+	GENERATOR(alloc_map) \
 	GENERATOR(v6_v4_map)	\
 	GENERATOR(v4_v6_map)	\
 	GENERATOR(new_flow_event_rb) \
 	GENERATOR(kernel_log_event_rb) \
 	GENERATOR(kernel_config_map) \
+	GENERATOR(stats_map) \
 
 
 #define NAT64_MAP_FD_GETTER(name) int nat64_get_##name##_fd(void);

@@ -80,7 +80,6 @@ int nat64_initialize_prog_map_fds(void) {
 	return NAT64_OK;
 }
 
-
 void nat64_destroy_prog_maps(void)
 {
 

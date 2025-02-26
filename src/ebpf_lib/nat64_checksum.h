@@ -1,10 +1,6 @@
 #ifndef NAT64_CHECKSUM_H
 #define NAT64_CHECKSUM_H
 
-
-#include <linux/ipv6.h>
-#include <linux/ip.h>
-#include <string.h>
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 

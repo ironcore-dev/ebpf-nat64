@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdint.h>
 
+// #include "vmlinux.h"
+
 #include <bpf/bpf_endian.h>
 
 #include "nat64_ipaddr.h"

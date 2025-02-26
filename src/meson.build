@@ -4,7 +4,8 @@ bpf_common_header_files = [
 	'include/nat64_addr_port_assignment.h',
 	'include/nat64_ipaddr.h',
 	'include/nat64_log_common.h',
-	'include/nat64_table_tuple.h'
+	'include/nat64_table_tuple.h',
+	'include/nat64_exporter_stats.h',
 ]
 
 bpf_kern_header_files = [
@@ -15,6 +16,7 @@ bpf_kern_header_files = [
 	'ebpf_lib/nat64_flow_handling.h',
 	'ebpf_lib/nat64_tcp_state_tracking.h',
 	'ebpf_lib/nat64_profile.h',
+	'ebpf_lib/nat64_exporter.h',
 ] #header files used to compile the BPF kernel program
 
 
