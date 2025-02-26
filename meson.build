@@ -11,6 +11,8 @@ run_command('mkdir', '-p', output_dir, check: true)
 cc = meson.get_compiler('c')
 clang = find_program('clang', required : true)
 llvm_strip = find_program('llvm-strip', required : true)
+go = find_program('go', required : true)
+bpf2go = find_program('bpf2go', required : true)
 
 # Define paths
 libbpf_src = meson.current_source_dir() / 'libbpf/src'
@@ -98,4 +100,5 @@ bpftool = custom_target('bpftool',
 	depends : bpftool_build
 )
 
-subdir('src')
+# subdir('src')
+subdir('exporter')
