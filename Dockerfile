@@ -33,16 +33,7 @@ RUN rm -rf build
 
 RUN mkdir -p /sys/fs/bpf
 
-COPY <<'EOF' /app/entrypoint.sh
-#!/bin/sh
-set -e
-
-if ! mount | grep -q "^bpf on /sys/fs/bpf"; then
-	mount -t bpf none /sys/fs/bpf
-fi
-
-exec /app/ebpf_nat64 "$@"
-EOF
+COPY entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 
@@ -55,16 +46,9 @@ RUN rm -rf build
 
 RUN mkdir -p /sys/fs/bpf
 
-COPY <<'EOF' /app/entrypoint.sh
-#!/bin/sh
-set -e
+COPY entrypoint.sh /app/entrypoint.sh
 
-if ! mount | grep -q "^bpf on /sys/fs/bpf"; then
-	mount -t bpf none /sys/fs/bpf
-fi
-
-exec /app/ebpf_nat64_test "$@"
-EOF
+RUN sed -i 's/ebpf_nat64/ebpf_nat64_test/' /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 
