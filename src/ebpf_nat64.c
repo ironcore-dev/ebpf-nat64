@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 		goto delete_prog;
 	}
 
-	// /* Attach xdp handler */
+	/* Attach xdp handler */
 	ret = nat64_load_prog_onto_ifaces();
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to attach xdp handler");

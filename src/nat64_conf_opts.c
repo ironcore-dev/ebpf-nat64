@@ -15,6 +15,7 @@
 #define OPT_ATTACH_SOUTH_IFACE "south-interface"
 #define OPT_ENABLE_SKB_MODE "skb-mode"
 #define OPT_DISABLE_CKSUM_RECALC "disable-cksum-recalc"
+#define OPT_ENABLE_MULTI_PAGE_MODE "multi-page-mode"
 
 /*argument parsing related definitions*/
 static const char short_options[] = "d" /* debug */
@@ -27,6 +28,7 @@ static char nat64_attach_north_iface_str[256] = {0};
 static char nat64_attach_south_iface_str[256] = {0};
 static char nat64_addr_port_pool_str[256] = {0};
 static bool disable_cksum_recalc = 0;
+static bool enable_multi_page_mode = 0;
 
 
 enum {
@@ -38,6 +40,7 @@ enum {
 	OPT_ATTACH_NORTH_IFACE_NUM,
 	OPT_ENABLE_SKB_MODE_NUM,
 	OPT_DISABLE_CKSUM_RECALC_NUM,
+	OPT_ENABLE_MULTI_PAGE_MODE_NUM,
 };
 
 static const struct option nat64_conf_longopts[] = {
@@ -48,21 +51,31 @@ static const struct option nat64_conf_longopts[] = {
 	{OPT_ATTACH_SOUTH_IFACE, 1, 0, OPT_ATTACH_SOUTH_IFACE_NUM},
 	{OPT_ENABLE_SKB_MODE, 0, 0, OPT_ENABLE_SKB_MODE_NUM},
 	{OPT_DISABLE_CKSUM_RECALC, 0, 0, OPT_DISABLE_CKSUM_RECALC_NUM},
+	{OPT_ENABLE_MULTI_PAGE_MODE, 0, 0, OPT_ENABLE_MULTI_PAGE_MODE_NUM},
 };
 
 
 void nat64_print_usage(const char *prgname)
 {
 	fprintf(stderr,
-		"%s --"
-		" --help [-h]"
-		" --log-level (error|warning|info|debug)"
-		" --addr-port-pool <addr:port-range>"
-		" --north-iface <iface1,iface2,...>"
-		" --south-iface <iface1,iface2,...>"
-		" --disable-cksum-recalc"
-		"\n",
-		prgname);
+		"%s -- \n"
+		" %-45s %s\n"
+		" %-45s %s\n"
+		" %-45s %s\n"
+		" %-45s %s\n"
+		" %-45s %s\n"
+		" %-45s %s\n"
+		" %-45s %s\n",
+		prgname,
+		"--help [-h]", "Display this help message",
+		"--log-level (error|warning|info|debug)", "Set the log level",
+		"--addr-port-pool <addr:port-range>", "Specify the NAT address and port range",
+		"--north-interface <iface1,iface2,...>", "Interfaces facing IPv4 internet",
+		"--south-interface <iface1,iface2,...>", "Interfaces facing IPv6 intranet",
+		"--disable-cksum-recalc", "Disable checksum recalculation in software",
+		"--skb-mode", "Enable SKB mode",
+		"--multi-page-mode", "Enable multi-page mode for jumpo frame interfaces"
+	);
 }
 
 
@@ -125,6 +138,9 @@ int nat64_parse_args(int argc, char **argv)
 			break;
 		case OPT_DISABLE_CKSUM_RECALC_NUM:
 			disable_cksum_recalc = 1;
+			break;
+		case OPT_ENABLE_MULTI_PAGE_MODE_NUM:
+			enable_multi_page_mode = 1;
 			break;
 		default:
 			nat64_print_usage(prgname);
@@ -217,6 +233,9 @@ static int parse_line(char *line, int lineno)
 	case OPT_DISABLE_CKSUM_RECALC_NUM:
 		disable_cksum_recalc = 1;
 		break;
+	case OPT_ENABLE_MULTI_PAGE_MODE_NUM:
+		enable_multi_page_mode = 1;
+		break;
 	default:
 		NAT64_LOG_ERROR("Config file: unknown option '%s'", key);
 		ret = NAT64_ERROR;
@@ -293,5 +312,10 @@ bool nat64_get_disable_cksum_recalc_flag(void)
 uint16_t nat64_get_log_level(void)
 {
 	return log_level;
+}
+
+bool nat64_get_enable_multi_page_mode(void)
+{
+	return enable_multi_page_mode;
 }
 

@@ -141,6 +141,16 @@ nat64_parse_l2(struct xdp_md *ctx)
 	return NAT64_OK;
 }
 
+SEC("xdp.frags")
+int xdp_nat64_frags(struct xdp_md *ctx)
+{
+	load_kernel_config();
+	if (NAT64_FAILED(nat64_parse_l2(ctx)))
+		return XDP_DROP;
+	else
+		return XDP_PASS;
+}
+
 SEC("xdp")
 int xdp_nat64(struct xdp_md *ctx)
 {
