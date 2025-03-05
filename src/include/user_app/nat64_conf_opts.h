@@ -18,6 +18,7 @@ const char *nat64_get_attach_north_iface_str(void);
 bool nat64_get_skb_mode(void);
 bool nat64_get_disable_cksum_recalc_flag(void);
 __u16 nat64_get_log_level(void);
+bool nat64_get_enable_multi_page_mode(void);
 
 
 #endif

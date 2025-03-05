@@ -27,6 +27,8 @@ south_interface intranet-iface
 log_level error
 ```
 
+Additionally, if your interfaces are configured with jumbo frame, it is possible to load the program with the multi-page mode using the option `multi-page-mode`. Otherwide, the error, `Peer MTU is too large to set XDP`, is going to appear.
+
 Press `Ctrl-C` to terminate the program.
 
 

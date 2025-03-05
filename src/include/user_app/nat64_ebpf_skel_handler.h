@@ -22,7 +22,7 @@
 int nat64_open_and_load_prog_skeleton(void);
 int nat64_initialize_prog_map_fds(void);
 
-int nat64_attach_prog_skeleton_to_iface(int iface_index, unsigned int xdp_flags);
+int nat64_attach_prog_skeleton_to_iface(int iface_index, unsigned int xdp_flags, bool use_multi_page);
 int nat64_detach_prog_skeleton_from_iface(int iface_index, unsigned int xdp_flags);
 
 void nat64_destroy_prog_maps(void);

@@ -202,10 +202,10 @@ void nat64_macro_log(unsigned int level, unsigned int log_source,
 				break;
 			case NAT64_LOG_TYPE_IPV4:
 				ipv4_value = va_arg(args, uint32_t);
-				fprintf(f, FORMAT_IPV4, key, ((ipv4_value) >> 24) & 0xFF,
-										 ((ipv4_value) >> 16) & 0xFF,
+				fprintf(f, FORMAT_IPV4, key, ((ipv4_value)) & 0xFF,
 										 ((ipv4_value) >> 8) & 0xFF,
-										  (ipv4_value) & 0xFF);
+										 ((ipv4_value) >> 16) & 0xFF,
+										 (ipv4_value >> 24) & 0xFF);
 				break;
 			case NAT64_LOG_TYPE_IPV6:
 				// re-use the escaping buffer for IP conversion
@@ -269,11 +269,11 @@ static void nat64_kern_log_print(unsigned int level, unsigned int log_source,
 				fprintf(f, FORMAT_UINT, key, *(unsigned int *)value);
 				break;
 			case NAT64_LOG_TYPE_IPV4:
-				ipv4_value = *(uint32_t *)value;  // expect host order
-				fprintf(f, FORMAT_IPV4, key, ((ipv4_value) >> 24) & 0xFF,
-											((ipv4_value) >> 16) & 0xFF,
-											((ipv4_value) >> 8) & 0xFF,
-											(ipv4_value) & 0xFF);
+				ipv4_value = *(uint32_t *)value;
+				fprintf(f, FORMAT_IPV4, key, ((ipv4_value)) & 0xFF,
+										 ((ipv4_value) >> 8) & 0xFF,
+										 ((ipv4_value) >> 16) & 0xFF,
+										 (ipv4_value >> 24) & 0xFF);
 				break;
 			case NAT64_LOG_TYPE_IPV6:
 				convert_ipv6_to_str((const union ipv6_addr *)value, escaped, sizeof(escaped));

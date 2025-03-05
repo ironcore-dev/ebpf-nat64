@@ -1,4 +1,3 @@
-
 #include <linux/if_link.h> /* depend on kernel-headers installed */
 
 
@@ -104,7 +103,7 @@ void nat64_destroy_prog_maps(void)
 
 }
 
-int nat64_attach_prog_skeleton_to_iface(int iface_index, unsigned int xdp_flags)
+int nat64_attach_prog_skeleton_to_iface(int iface_index, unsigned int xdp_flags, bool use_multi_page)
 {
 	int err, prog_fd;
 
@@ -113,7 +112,10 @@ int nat64_attach_prog_skeleton_to_iface(int iface_index, unsigned int xdp_flags)
 		return NAT64_ERROR;
 	}
 	
-	prog_fd = bpf_program__fd(skel->progs.xdp_nat64);
+	if (use_multi_page)
+		prog_fd = bpf_program__fd(skel->progs.xdp_nat64_frags);
+	else
+		prog_fd = bpf_program__fd(skel->progs.xdp_nat64);
 	
 	err = bpf_xdp_attach(iface_index, prog_fd, xdp_flags, NULL);
 	if (NAT64_FAILED(err)) {
@@ -157,7 +159,7 @@ int nat64_load_prog_onto_ifaces(void)
 	xdp_flags |= nat64_get_skb_mode()? XDP_FLAGS_SKB_MODE : XDP_FLAGS_DRV_MODE;
 
 	for (int i = 0; i < iface_cnt; i++) {
-		err = nat64_attach_prog_skeleton_to_iface(attach_iface_info[i].iface_index, xdp_flags);
+		err = nat64_attach_prog_skeleton_to_iface(attach_iface_info[i].iface_index, xdp_flags, nat64_get_enable_multi_page_mode());
 		if (NAT64_FAILED(err))
 			break;
 		attached_iface_cnt++;
