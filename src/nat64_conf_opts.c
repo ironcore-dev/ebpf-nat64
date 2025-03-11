@@ -65,6 +65,7 @@ void nat64_print_usage(const char *prgname)
 		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
+		" %-45s %s\n"
 		" %-45s %s\n",
 		prgname,
 		"--help [-h]", "Display this help message",
