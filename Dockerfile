@@ -27,9 +27,15 @@ COPY src/ src/
 RUN meson build && ninja -C build
 
 
-FROM builder AS runner
-RUN cp build/src/ebpf_nat64 /app/ebpf_nat64
-RUN rm -rf build
+FROM ubuntu:latest AS runner
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+	iproute2 \
+	iputils-ping \
+	&& rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/build/src/ebpf_nat64 /app/ebpf_nat64
 
 RUN mkdir -p /sys/fs/bpf
 
@@ -40,8 +46,14 @@ RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 
-FROM builder AS tester
-RUN cp build/src/ebpf_nat64_test /app/ebpf_nat64_test
+FROM ubuntu:latest AS tester
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+	libelf-dev \
+	&& rm -rf /var/lib/apt/lists/*
+
+copy --from=builder /app/build/src/ebpf_nat64_test /app/ebpf_nat64_test
 RUN rm -rf build
 
 RUN mkdir -p /sys/fs/bpf
