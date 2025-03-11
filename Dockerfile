@@ -12,8 +12,7 @@ RUN apt-get update && \
 					ninja-build \
 					ca-certificates \
 					libbpf-dev \
-					gcc-multilib \
-					iproute2
+					gcc-multilib
 
 COPY .git .git
 COPY .gitmodules .gitmodules
@@ -25,6 +24,7 @@ COPY vmlinux/ vmlinux/
 COPY src/ src/
 
 RUN meson build && ninja -C build
+
 
 
 FROM ubuntu:latest AS runner
@@ -44,6 +44,7 @@ COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]
+
 
 
 FROM ubuntu:latest AS tester
