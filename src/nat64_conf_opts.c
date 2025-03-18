@@ -16,6 +16,7 @@
 #define OPT_ENABLE_SKB_MODE "skb-mode"
 #define OPT_DISABLE_CKSUM_RECALC "disable-cksum-recalc"
 #define OPT_ENABLE_MULTI_PAGE_MODE "multi-page-mode"
+#define OPT_ENABLE_JSON_LOG "json-log"
 
 /*argument parsing related definitions*/
 static const char short_options[] = "d" /* debug */
@@ -29,6 +30,7 @@ static char nat64_attach_south_iface_str[256] = {0};
 static char nat64_addr_port_pool_str[256] = {0};
 static bool disable_cksum_recalc = 0;
 static bool enable_multi_page_mode = 0;
+static bool enable_json_log = 0;
 
 
 enum {
@@ -41,6 +43,7 @@ enum {
 	OPT_ENABLE_SKB_MODE_NUM,
 	OPT_DISABLE_CKSUM_RECALC_NUM,
 	OPT_ENABLE_MULTI_PAGE_MODE_NUM,
+	OPT_ENABLE_JSON_LOG_NUM,
 };
 
 static const struct option nat64_conf_longopts[] = {
@@ -52,6 +55,8 @@ static const struct option nat64_conf_longopts[] = {
 	{OPT_ENABLE_SKB_MODE, 0, 0, OPT_ENABLE_SKB_MODE_NUM},
 	{OPT_DISABLE_CKSUM_RECALC, 0, 0, OPT_DISABLE_CKSUM_RECALC_NUM},
 	{OPT_ENABLE_MULTI_PAGE_MODE, 0, 0, OPT_ENABLE_MULTI_PAGE_MODE_NUM},
+	{OPT_ENABLE_JSON_LOG, 0, 0, OPT_ENABLE_JSON_LOG_NUM},
+	{0, 0, 0, 0}
 };
 
 
@@ -59,6 +64,7 @@ void nat64_print_usage(const char *prgname)
 {
 	fprintf(stderr,
 		"%s -- \n"
+		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
@@ -75,7 +81,8 @@ void nat64_print_usage(const char *prgname)
 		"--south-interface <iface1,iface2,...>", "Interfaces facing IPv6 intranet",
 		"--disable-cksum-recalc", "Disable checksum recalculation in software",
 		"--skb-mode", "Enable SKB mode",
-		"--multi-page-mode", "Enable multi-page mode for jumpo frame interfaces"
+		"--multi-page-mode", "Enable multi-page mode for jumpo frame interfaces",
+		"--json-log", "Enable JSON formatted log messages"
 	);
 }
 
@@ -142,6 +149,9 @@ int nat64_parse_args(int argc, char **argv)
 			break;
 		case OPT_ENABLE_MULTI_PAGE_MODE_NUM:
 			enable_multi_page_mode = 1;
+			break;
+		case OPT_ENABLE_JSON_LOG_NUM:
+			enable_json_log = 1;
 			break;
 		default:
 			nat64_print_usage(prgname);
@@ -320,3 +330,7 @@ bool nat64_get_enable_multi_page_mode(void)
 	return enable_multi_page_mode;
 }
 
+bool nat64_get_enable_json_log(void)
+{
+	return enable_json_log;
+}

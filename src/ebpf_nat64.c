@@ -39,9 +39,12 @@ int main(int argc, char **argv)
 
 	ret = nat64_get_cmd_conf(argc, argv);
 	if(NAT64_FAILED(ret))
-		return 1;
+	return 1;
 	
+	nat64_log_init();
 	libbpf_set_print(nat64_libbpf_print_fn);
+
+	nat64_print_parsed_results();
 
 	signal(SIGINT, process_stop_signal);
 

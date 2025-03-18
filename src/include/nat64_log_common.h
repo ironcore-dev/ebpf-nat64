@@ -53,4 +53,7 @@ struct nat64_kernel_log_event {
 	struct nat64_kernel_log_value entries[NAT64_LOG_MAX_ENTRIES];
 };
 
+
+int nat64_log_init(void);
+
 #endif 

@@ -154,7 +154,7 @@ static void print_iface_indexes(void)
 						NAT64_LOG_VALUE(attach_iface_info[i].direction));
 }
 
-static void print_parsed_results(void)
+void nat64_print_parsed_results(void)
 {
 	print_addr_port_pool();
 	print_iface_indexes();
@@ -167,8 +167,6 @@ int nat64_get_cmd_conf(int argc, char **argv)
 
 	if (NAT64_FAILED(convert_parsed_args()))
 		return NAT64_ERROR;
-
-	print_parsed_results();
 
 	return NAT64_OK;
 }
