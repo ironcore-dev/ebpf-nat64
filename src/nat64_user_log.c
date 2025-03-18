@@ -71,10 +71,9 @@ static struct ring_buffer *kernel_log_event_rb = NULL;
 static volatile bool kernel_log_printer_running = true;
 
 
-int dp_log_init(void)
+int nat64_log_init(void)
 {
-
-	log_json = false;
+	log_json = nat64_get_enable_json_log();
 	if (log_json) {
 		log_formatter = log_formatter_json;
 		log_sources = log_sources_json;

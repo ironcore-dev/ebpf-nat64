@@ -19,6 +19,8 @@ extern int attach_iface_cnt;
 
 int nat64_get_cmd_conf(int argc, char **argv);
 
+void nat64_print_parsed_results(void);
+
 int nat64_get_parsed_addr_port_cnt(void);
 int nat64_get_parsed_attach_iface_cnt(void);
 const struct nat64_address_ports_range *nat64_get_parsed_addr_port_pool(void);
