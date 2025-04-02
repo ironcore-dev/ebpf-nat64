@@ -53,7 +53,10 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 	if (!flow_value) {
 		flow_value = &new_flow_value;
 		flow_value->last_seen = bpf_ktime_get_ns();
-		flow_value->timeout_value = NAT64_ASSIGNMENT_LIVENESS_IN_SEC;
+		if (__is_test_mode)
+			flow_value->timeout_value = NAT64_TEST_MODE_ASSIGNMENT_LIVENESS_IN_SEC;
+		else
+			flow_value->timeout_value = NAT64_ASSIGNMENT_LIVENESS_IN_SEC;
 		ret = process_nat64_new_outgoing_ipv6_flow(ctx->ingress_ifindex, &flow_sig, flow_value);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to fetch an assigned nat64 addr and port");

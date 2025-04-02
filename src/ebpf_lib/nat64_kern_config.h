@@ -16,6 +16,7 @@ struct {
 
 static bool __is_config_loaded = false;
 static bool __is_cksum_recalc_disabled = false;
+static bool __is_test_mode = false;
 
 __u8 __log_level = 0;
 
@@ -30,6 +31,7 @@ static __always_inline void load_kernel_config()
 			__log_level = config->log_level;
 			__is_cksum_recalc_disabled = config->disable_cksum_recalc;
 
+			__is_test_mode = config->test_mode;
 			__is_config_loaded = true;
 		}
 	}

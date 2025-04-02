@@ -17,6 +17,7 @@
 #define OPT_DISABLE_CKSUM_RECALC "disable-cksum-recalc"
 #define OPT_ENABLE_MULTI_PAGE_MODE "multi-page-mode"
 #define OPT_ENABLE_JSON_LOG "json-log"
+#define OPT_ENABLE_TEST_MODE "test-mode"
 
 /*argument parsing related definitions*/
 static const char short_options[] = "d" /* debug */
@@ -31,6 +32,7 @@ static char nat64_addr_port_pool_str[256] = {0};
 static bool disable_cksum_recalc = 0;
 static bool enable_multi_page_mode = 0;
 static bool enable_json_log = 0;
+static int enable_test_mode = 0;
 
 
 enum {
@@ -44,6 +46,7 @@ enum {
 	OPT_DISABLE_CKSUM_RECALC_NUM,
 	OPT_ENABLE_MULTI_PAGE_MODE_NUM,
 	OPT_ENABLE_JSON_LOG_NUM,
+	OPT_ENABLE_TEST_MODE_NUM,
 };
 
 static const struct option nat64_conf_longopts[] = {
@@ -56,6 +59,7 @@ static const struct option nat64_conf_longopts[] = {
 	{OPT_DISABLE_CKSUM_RECALC, 0, 0, OPT_DISABLE_CKSUM_RECALC_NUM},
 	{OPT_ENABLE_MULTI_PAGE_MODE, 0, 0, OPT_ENABLE_MULTI_PAGE_MODE_NUM},
 	{OPT_ENABLE_JSON_LOG, 0, 0, OPT_ENABLE_JSON_LOG_NUM},
+	{OPT_ENABLE_TEST_MODE, 0, 0, OPT_ENABLE_TEST_MODE_NUM},
 	{0, 0, 0, 0}
 };
 
@@ -64,6 +68,7 @@ void nat64_print_usage(const char *prgname)
 {
 	fprintf(stderr,
 		"%s -- \n"
+		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
@@ -82,7 +87,8 @@ void nat64_print_usage(const char *prgname)
 		"--disable-cksum-recalc", "Disable checksum recalculation in software",
 		"--skb-mode", "Enable SKB mode",
 		"--multi-page-mode", "Enable multi-page mode for jumpo frame interfaces",
-		"--json-log", "Enable JSON formatted log messages"
+		"--json-log", "Enable JSON formatted log messages",
+		"--test-mode", "Enable test mode for automatic testing"
 	);
 }
 
@@ -152,6 +158,9 @@ int nat64_parse_args(int argc, char **argv)
 			break;
 		case OPT_ENABLE_JSON_LOG_NUM:
 			enable_json_log = 1;
+			break;
+		case OPT_ENABLE_TEST_MODE_NUM:
+			enable_test_mode = 1;
 			break;
 		default:
 			nat64_print_usage(prgname);
@@ -247,6 +256,12 @@ static int parse_line(char *line, int lineno)
 	case OPT_ENABLE_MULTI_PAGE_MODE_NUM:
 		enable_multi_page_mode = 1;
 		break;
+	case OPT_ENABLE_JSON_LOG_NUM:
+		enable_json_log = 1;
+		break;
+	case OPT_ENABLE_TEST_MODE_NUM:
+		enable_test_mode = 1;
+		break;
 	default:
 		NAT64_LOG_ERROR("Config file: unknown option '%s'", key);
 		ret = NAT64_ERROR;
@@ -333,4 +348,9 @@ bool nat64_get_enable_multi_page_mode(void)
 bool nat64_get_enable_json_log(void)
 {
 	return enable_json_log;
+}
+
+bool nat64_get_enable_test_mode(void)
+{
+	return enable_test_mode;
 }

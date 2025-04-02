@@ -22,6 +22,7 @@
 #include "ebpf_nat64_test_func.h"
 #include "ebpf_nat64_test_udp_tcp.h"
 #include "ebpf_nat64_test_icmp6.h"
+#include "ebpf_nat64_test_peak_udp.h"
 #include "nat64_ebpf_skel_handler.h"
 #include "nat64_addr_port_assignment.h"
 #include "nat64_conf.h"
@@ -37,8 +38,8 @@ const union ipv6_addr ipv6_test_pkt_src_addr = {
 };
 
 const uint32_t ipv4_test_pkt_dst_addr = 0xC0000301; // target ipv4 address
-const uint16_t ipv4_test_pkt_l4_src_port = 0x1234; // source port
-const uint16_t ipv4_test_pkt_l4_dst_port = 0x5678;
+const uint16_t ipv6_test_pkt_l4_src_port = 0x1234; // source port
+const uint16_t ipv6_test_pkt_l4_dst_port = 0x5678;
 
 uint32_t ipv4_test_nat64_ip_addr = 0; // source ipv4 address -- NAT64 IP address
 uint16_t ipv4_test_nat64_port_range[2] = {0, 0}; // NAT64 port range
@@ -85,7 +86,6 @@ static void init_test_env(void)
 
 int nat64_run_tests(void)
 {
-
 	init_test_env();
 
 	if (nat64_test_udp() != TEST_PASS) {
@@ -95,8 +95,7 @@ int nat64_run_tests(void)
 		printf("UDP test passed \n");
 	}
 
-	sleep(1);
-
+	sleep(5);
 	if (nat64_test_tcp() != TEST_PASS) {
 		NAT64_LOG_ERROR("Failed to run nat64 TCP test");
 		return TEST_ERROR;
@@ -104,14 +103,22 @@ int nat64_run_tests(void)
 		printf("TCP test passed \n");
 	}
 
-	sleep(1);
-
+	sleep(5);
 	if (nat64_test_icmp6() != TEST_PASS) {
 		NAT64_LOG_ERROR("Failed to run nat64 ICMP6 test");
 		return TEST_ERROR;
 	} else {
 		printf("ICMP6 test passed \n");
 	}
+	sleep(5);
+
+	if (nat64_test_peak_udp() != TEST_PASS) {
+		NAT64_LOG_ERROR("Failed to run nat64 peak UDP test");
+		return TEST_ERROR;
+	} else {
+		printf("Peak UDP test passed \n");
+	}
+	sleep(5);
 
 	return TEST_PASS;
 }
