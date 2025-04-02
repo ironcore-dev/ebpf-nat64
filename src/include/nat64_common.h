@@ -18,6 +18,7 @@
 #define NAT64_FLOW_HANDLE_CAPACITY (16384 * 5)
 
 #define NAT64_ASSIGNMENT_LIVENESS_IN_SEC 10
+#define NAT64_TEST_MODE_ASSIGNMENT_LIVENESS_IN_SEC 3
 #define NAT64_ASSIGNMENT_LIVENESS_TCP_ESTABLISHED_IN_SEC 86400 //(24 * 60 * 60)
 #define NAT64_SEC_TO_NANO(SEC) (1000ULL * 1000ULL * 1000ULL * SEC)
 
@@ -52,6 +53,7 @@ struct nat64_ipv6_new_flow_event {
 struct nat64_kernel_config {
 	__u8 log_level;
 	__u8 disable_cksum_recalc;
+	__u8 test_mode;
 };
 
 

@@ -74,4 +74,4 @@ RUN sed -i 's/ebpf_nat64/ebpf_nat64_test/' /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 
-ENTRYPOINT ["/app/entrypoint.sh", "--addr-port-pool", "5.5.5.5:1000-2000", "--log-level", "error"	]
+ENTRYPOINT ["/app/entrypoint.sh", "--addr-port-pool", "5.5.5.5:1000-2000", "--log-level", "error", "--test-mode"]

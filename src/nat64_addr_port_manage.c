@@ -403,6 +403,11 @@ static int nat64_new_flow_event_handler(void *ctx __attribute__((unused)), void 
 	const struct nat64_ipv6_new_flow_event *e = data;
 	int ret;
 
+	if (nat64_get_enable_test_mode()) {
+		NAT64_LOG_DEBUG("New IPv6 flow event received in test mode", NAT64_LOG_IFACE_INDEX(e->iface_index));
+		return NAT64_OK;
+	}
+
 	ret = compute_and_update_addr_port_assignment(e->iface_index);
 	if (NAT64_FAILED(ret))
 		NAT64_LOG_ERROR("Failed to compute address port assignment for interface", NAT64_LOG_IFACE_INDEX(e->iface_index));

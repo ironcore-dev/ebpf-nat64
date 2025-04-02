@@ -36,7 +36,6 @@ set_timeout_tcp_flow(const struct nat64_table_tuple *flow_sig, struct nat64_tabl
 		flow_value->timeout_value = (__u16)NAT64_ASSIGNMENT_LIVENESS_IN_SEC;
 		reverse_flow_value->timeout_value = flow_value->timeout_value;
 	}
-
 }
 
 
