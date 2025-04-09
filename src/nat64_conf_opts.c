@@ -121,7 +121,7 @@ static int get_forwarding_mode_from_name(const char *name)
 	} else if (strcmp(name, "tx") == 0) {
 		return NAT64_PKT_FORWARDING_MODE_TX;
 	} else if (strcmp(name, "redirect") == 0) {
-		return NAT64_PKT_FORWARDING_MODE_KERNEL;
+		return NAT64_PKT_FORWARDING_MODE_REDIRECT;
 	} else {
 		return NAT64_ERROR;  // Invalid forwarding mode name
 	}
