@@ -6,6 +6,15 @@
 
 #include "../include/nat64_common.h"
 
+static __always_inline void reduce_func(__u32 *csum_buffer)
+{
+	__u32 tmp = (*csum_buffer >> 16) + (*csum_buffer & 0xFFFF);
+	*csum_buffer = (tmp > 0xFFFF) ? tmp - 0xFFFF : tmp;
+}
+
+#define REDUCE {reduce_func(&csum_buffer);}
+
+
 /** helper functions copied from https://github.com/cilium/cilium/blob/main/bpf/include/bpf/csum.h **/
 static __always_inline __u16 csum_fold(__u32 csum)
 {
@@ -30,54 +39,73 @@ static __always_inline __u32 csum_sub(__u32 csum, __u32 addend)
 	return csum_add(csum, ~addend);
 }
 
-static __always_inline __u32 csum_diff(void *from, __u32 size_from,
-					void *to,   __u32 size_to,
-					__u32 seed)
+static __always_inline void calc_pseudo_ip_ip6_csum(__u32 *csum, int proto,
+													struct ipv6hdr *ipv6_hdr, struct iphdr *iph)
 {
-	__s64 csum_diff_result = bpf_csum_diff(from, size_from, to, size_to, seed);
-	if (csum_diff_result < 0) {
-		return 0;
+	__u32 csum_buffer = *csum;
+
+	if (proto == NAT64_IP_VERSION_V4) {
+		csum_buffer += (__u16)iph->saddr; REDUCE
+		csum_buffer += (__u16)(iph->saddr >> 16); REDUCE
+		csum_buffer += (__u16)iph->daddr; REDUCE
+		csum_buffer += (__u16)(iph->daddr >> 16); REDUCE
+
+		csum_buffer += (__u16)iph->protocol << 8; REDUCE
+		csum_buffer += bpf_htons(bpf_ntohs(iph->tot_len) - sizeof(struct iphdr)); REDUCE
+
+	} else {
+		for(int i = 0; i < 16; i += 2)	{
+			csum_buffer += ipv6_hdr->saddr.in6_u.u6_addr8[i] + (ipv6_hdr->saddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
+		}
+
+		for(int i = 0; i < 16; i += 2)	{
+			csum_buffer += ipv6_hdr->daddr.in6_u.u6_addr8[i] + (ipv6_hdr->daddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
+		}
+
+		csum_buffer += (__u16)ipv6_hdr->nexthdr << 8; REDUCE
+		csum_buffer += ipv6_hdr->payload_len; REDUCE
 	}
 
-	return (__u32) csum_diff_result;
+	*csum = csum_buffer;
 }
 
-static __always_inline __be32 ipv6_pseudohdr_checksum(struct ipv6hdr *hdr,
-													__u8 next_hdr,
-													__u16 payload_len, __be32 sum)
+static __always_inline __u16 update_tcp_udp_checksum(__u32 old_cksum, __u16 old_port, __u16 new_port,
+													struct ipv6hdr *ipv6_hdr,
+													struct iphdr *ipv4_hdr, enum nat64_flow_direction direction)
 {
-	__be32 nexthdr = bpf_htonl((__u32)next_hdr);
-	__be32 len = bpf_htonl((__u32)payload_len);
+	__u32 csum_buffer = csum_unfold(old_cksum);
 
-	sum = csum_diff(NULL, 0, &hdr->saddr, sizeof(struct in6_addr), sum);
-	sum = csum_diff(NULL, 0, &hdr->daddr, sizeof(struct in6_addr), sum);
-	sum = csum_diff(NULL, 0, &len, sizeof(len), sum);
-	sum = csum_diff(NULL, 0, &nexthdr, sizeof(nexthdr), sum);
+	__u32 ipv4_pseudo_hdr_cksum = 0;
+	__u32 ipv6_pseudo_hdr_cksum = 0;
 
-	return sum;
+	// IPv6 -> IPv4 (OUTGOING)
+	if (direction == NAT64_FLOW_DIRECTION_OUTGOING) {
+		calc_pseudo_ip_ip6_csum(&ipv4_pseudo_hdr_cksum, NAT64_IP_VERSION_V4, NULL, ipv4_hdr);
+		calc_pseudo_ip_ip6_csum(&ipv6_pseudo_hdr_cksum, NAT64_IP_VERSION_V6, ipv6_hdr, NULL);
+
+		csum_buffer += ((~ipv6_pseudo_hdr_cksum) & 0xFFFF); REDUCE
+		csum_buffer += ipv4_pseudo_hdr_cksum; REDUCE
+	} else {
+		// Reverse: IPv4 → IPv6 (INCOMING)
+		calc_pseudo_ip_ip6_csum(&ipv4_pseudo_hdr_cksum, NAT64_IP_VERSION_V4, NULL, ipv4_hdr);
+		calc_pseudo_ip_ip6_csum(&ipv6_pseudo_hdr_cksum, NAT64_IP_VERSION_V6, ipv6_hdr, NULL);
+
+		csum_buffer += ((~ipv4_pseudo_hdr_cksum) & 0xFFFF); REDUCE
+		csum_buffer += ipv6_pseudo_hdr_cksum; REDUCE
+	}
+
+	// Add port change
+	csum_buffer += (~old_port & 0xFFFF); REDUCE
+	csum_buffer += new_port; REDUCE
+
+	__u16 csum = (__u16)csum_buffer + (__u16)(csum_buffer >> 16);
+	csum = ~csum;
+
+	return csum;
 }
 
-static __always_inline __be32 ipv4_pseudohdr_checksum(const struct iphdr *hdr,
-													__u8 next_proto,
-													__u16 payload_len, __be32 sum)
+static inline __u16 compute_ipv4_hdr_checksum(const __u16 *buf, int bufsz)
 {
-	__be32 saddr = hdr->saddr;
-	__be32 daddr = hdr->daddr;
-	__be32 len = bpf_htonl((__u32)payload_len);
-	__be32 proto = bpf_htonl((__u32)next_proto);
-	__be16 proto_short = (__be16)(proto & 0xFFFF);
-
-	sum = csum_diff(NULL, 0, &saddr, sizeof(saddr), sum);
-	sum = csum_diff(NULL, 0, &daddr, sizeof(daddr), sum);
-	sum = csum_diff(NULL, 0, &proto_short, sizeof(proto_short), sum);
-	sum = csum_diff(NULL, 0, &len, sizeof(len), sum);
-
-	return sum;
-}
-
-
-static inline __u16
-compute_ipv4_hdr_checksum(const __u16 *buf, int bufsz) {
 	__u32 sum = 0;
 
 	while (bufsz > 1) {
@@ -96,41 +124,23 @@ compute_ipv4_hdr_checksum(const __u16 *buf, int bufsz) {
 	return ~sum;
 }
 
-static __always_inline __u16 update_tcp_udp_checksum(__u32 old_cksum, __u16 old_port, __u16 new_port,
-												struct ipv6hdr *ipv6_hdr,
-												struct iphdr *ipv4_hdr, enum nat64_flow_direction direction)
-{
-	__u32 csum = csum_unfold(old_cksum);
-
-	if (direction == NAT64_FLOW_DIRECTION_OUTGOING) {
-		csum = csum_diff(&ipv6_hdr->saddr, 16, &ipv4_hdr->saddr, 4, csum);
-		csum = csum_diff(&ipv6_hdr->daddr, 16, &ipv4_hdr->daddr, 4, csum);
-	} else {
-		csum = csum_diff(&ipv4_hdr->saddr, 4, &ipv6_hdr->saddr, 16, csum);
-		csum = csum_diff(&ipv4_hdr->daddr, 4, &ipv6_hdr->daddr, 16, csum);
-	}
-	csum = csum + (~old_port & 0xFFFF) + new_port;
-
-	return csum_fold(csum);
-}
-
 // borrowed from https://github.com/cilium/cilium/blob/main/bpf/lib/lb.h#L2147
 static __always_inline
-__u32 icmp_wsum_accumulate(void *data_start, void *data_end, int sample_len)
+__u32 icmp_icmp6_csum_accumulate(void *data_start, void *data_end, int sample_len)
 {
 	/* Unrolled loop to calculate the checksum of the ICMP sample
 	 * Done manually because the compiler refuses with #pragma unroll
 	 */
-	__u32 wsum = 0;
+	__u32 csum_buffer = 0;
 
 	#define body(i) if ((i) > sample_len) \
-		return wsum; \
+		return csum_buffer; \
 	if (data_start + (i) + sizeof(__u16) > data_end) { \
 		if (data_start + (i) + sizeof(__u8) <= data_end)\
-			wsum += *(__u8 *)(data_start + (i)); \
-		return wsum; \
+			csum_buffer += *(__u8 *)(data_start + (i)); \
+		return csum_buffer; \
 	} \
-	wsum += *(__u16 *)(data_start + (i));
+	csum_buffer += *(__u16 *)(data_start + (i));
 
 	#define body4(i) body(i)\
 		body(i + 2) \
@@ -148,12 +158,35 @@ __u32 icmp_wsum_accumulate(void *data_start, void *data_end, int sample_len)
 		body16(i + 96)
 
 	body128(0)
+	body128(128)
 	body128(256)
+	body128(384)
 	body128(512)
-	body128(768)
-	body128(1024)
 
-	return wsum;
+	return csum_buffer;
 }
+
+static __always_inline
+__u16 compute_icmp_cksum(void *data_begin, void *data_end, int sample_len)
+{
+	__u32 cksum_tmp = 0;
+
+	cksum_tmp = icmp_icmp6_csum_accumulate(data_begin, data_end, sample_len);
+
+	return csum_fold(cksum_tmp);
+}
+
+static __always_inline
+__u16 compute_icmp6_cksum(struct ipv6hdr *ipv6_hdr, void *data_begin, void *data_end, int sample_len)
+{
+	__u32 icmp6_cksum = 0, ipv6_pseudo_hdr_cksum = 0, csum_buffer = 0;
+
+	calc_pseudo_ip_ip6_csum(&ipv6_pseudo_hdr_cksum, NAT64_IP_VERSION_V6, ipv6_hdr, NULL);
+	icmp6_cksum = icmp_icmp6_csum_accumulate(data_begin, data_end, sample_len);
+	csum_buffer = ipv6_pseudo_hdr_cksum + icmp6_cksum; REDUCE
+
+	return csum_fold(csum_buffer);
+}
+
 
 #endif
