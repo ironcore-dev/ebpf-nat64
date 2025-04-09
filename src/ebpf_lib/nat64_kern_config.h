@@ -17,6 +17,7 @@ struct {
 static bool __is_config_loaded = false;
 static bool __is_cksum_recalc_disabled = false;
 static bool __is_test_mode = false;
+static int __forwarding_mode = NAT64_PKT_FORWARDING_MODE_KERNEL;
 
 __u8 __log_level = 0;
 
@@ -32,6 +33,7 @@ static __always_inline void load_kernel_config()
 			__is_cksum_recalc_disabled = config->disable_cksum_recalc;
 
 			__is_test_mode = config->test_mode;
+			__forwarding_mode = config->forwarding_mode;
 			__is_config_loaded = true;
 		}
 	}

@@ -18,6 +18,7 @@
 #define OPT_ENABLE_MULTI_PAGE_MODE "multi-page-mode"
 #define OPT_ENABLE_JSON_LOG "json-log"
 #define OPT_ENABLE_TEST_MODE "test-mode"
+#define OPT_FORWARDING_MODE "forwarding-mode"
 
 /*argument parsing related definitions*/
 static const char short_options[] = "d" /* debug */
@@ -33,6 +34,7 @@ static bool disable_cksum_recalc = 0;
 static bool enable_multi_page_mode = 0;
 static bool enable_json_log = 0;
 static int enable_test_mode = 0;
+static int forwarding_mode = 0;
 
 
 enum {
@@ -47,6 +49,7 @@ enum {
 	OPT_ENABLE_MULTI_PAGE_MODE_NUM,
 	OPT_ENABLE_JSON_LOG_NUM,
 	OPT_ENABLE_TEST_MODE_NUM,
+	OPT_FORWARDING_MODE_NUM,
 };
 
 static const struct option nat64_conf_longopts[] = {
@@ -60,6 +63,7 @@ static const struct option nat64_conf_longopts[] = {
 	{OPT_ENABLE_MULTI_PAGE_MODE, 0, 0, OPT_ENABLE_MULTI_PAGE_MODE_NUM},
 	{OPT_ENABLE_JSON_LOG, 0, 0, OPT_ENABLE_JSON_LOG_NUM},
 	{OPT_ENABLE_TEST_MODE, 0, 0, OPT_ENABLE_TEST_MODE_NUM},
+	{OPT_FORWARDING_MODE, 1, 0, OPT_FORWARDING_MODE_NUM},
 	{0, 0, 0, 0}
 };
 
@@ -68,6 +72,7 @@ void nat64_print_usage(const char *prgname)
 {
 	fprintf(stderr,
 		"%s -- \n"
+		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
@@ -88,12 +93,14 @@ void nat64_print_usage(const char *prgname)
 		"--skb-mode", "Enable SKB mode",
 		"--multi-page-mode", "Enable multi-page mode for jumpo frame interfaces",
 		"--json-log", "Enable JSON formatted log messages",
-		"--test-mode", "Enable test mode for automatic testing"
+		"--test-mode", "Enable test mode for automatic testing",
+		"--forwarding-mode <mode>", "Set the forwarding mode (0: kernel (default), 1: tx (same interface), 2: redirect (different interface))"
 	);
 }
 
 
-static int get_log_level_from_name(const char *name) {
+static int get_log_level_from_name(const char *name)
+{
 	if (strcmp(name, "error") == 0) {
 		return NAT64_LOG_LEVEL_ERROR;
 	} else if (strcmp(name, "warning") == 0) {
@@ -104,6 +111,19 @@ static int get_log_level_from_name(const char *name) {
 		return NAT64_LOG_LEVEL_DEBUG;
 	} else {
 		return NAT64_ERROR;  // Invalid log level name
+	}
+}
+
+static int get_forwarding_mode_from_name(const char *name)
+{
+	if (strcmp(name, "kernel") == 0) {
+		return NAT64_PKT_FORWARDING_MODE_KERNEL;
+	} else if (strcmp(name, "tx") == 0) {
+		return NAT64_PKT_FORWARDING_MODE_TX;
+	} else if (strcmp(name, "redirect") == 0) {
+		return NAT64_PKT_FORWARDING_MODE_KERNEL;
+	} else {
+		return NAT64_ERROR;  // Invalid forwarding mode name
 	}
 }
 
@@ -134,6 +154,19 @@ int nat64_parse_args(int argc, char **argv)
 			log_level = get_log_level_from_name(optarg);
 			if (NAT64_FAILED(log_level)) {
 				NAT64_LOG_ERROR("Invalid log level", NAT64_LOG_OPT_STR(optarg));
+				nat64_print_usage(prgname);
+				return NAT64_ERROR;
+			}
+			break;
+		case OPT_FORWARDING_MODE_NUM:
+			if (optarg == NULL) {
+				NAT64_LOG_ERROR("Forwarding mode is required");
+				nat64_print_usage(prgname);
+				return NAT64_ERROR;
+			}
+			forwarding_mode = get_forwarding_mode_from_name(optarg);
+			if (NAT64_FAILED(forwarding_mode)) {
+				NAT64_LOG_ERROR("Invalid forwarding mode", NAT64_LOG_OPT_STR(optarg));
 				nat64_print_usage(prgname);
 				return NAT64_ERROR;
 			}
@@ -247,6 +280,9 @@ static int parse_line(char *line, int lineno)
 	case OPT_LOG_LEVEL_NUM:
 		log_level = get_log_level_from_name(argument);
 		break;
+	case OPT_FORWARDING_MODE_NUM:
+		forwarding_mode = get_forwarding_mode_from_name(argument);
+		break;
 	case OPT_ENABLE_SKB_MODE_NUM:
 		enable_skb_mode = 1;
 		break;
@@ -353,4 +389,9 @@ bool nat64_get_enable_json_log(void)
 bool nat64_get_enable_test_mode(void)
 {
 	return enable_test_mode;
+}
+
+int nat64_get_forwarding_mode(void)
+{
+	return forwarding_mode;
 }
