@@ -48,6 +48,10 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 	if (NAT64_FAILED(ret))
 		return NAT64_ERROR;
 
+	NAT64_LOG_DEBUG("Filled an IPv6 flow signature", NAT64_LOG_L4_PROTOCOL(flow_sig.protocol),
+											NAT64_LOG_SRC_IPV6(flow_sig.addr.v6.src_ip6.u6_addr8), NAT64_LOG_DST_IPV6(flow_sig.addr.v6.dst_ip6.u6_addr8),
+											NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)), NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
+
 	flow_value = bpf_map_lookup_elem(&nat64_v6_v4_map, &flow_sig);
 
 	if (!flow_value) {
@@ -104,10 +108,12 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 
 	// Lookup the flow in the NAT64 v4->v6 map
 	flow_value = bpf_map_lookup_elem(&nat64_v4_v6_map, &flow_sig);
-	if (!flow_value) {
-		NAT64_LOG_INFO("No NAT64 mapping found for incoming IPv4 packet. Pass.");
+	if (!flow_value)
 		return NAT64_IGNORE;
-	}
+
+	NAT64_LOG_DEBUG("Filled an IPv4 flow signature", NAT64_LOG_L4_PROTOCOL(flow_sig.protocol),
+												NAT64_LOG_SRC_IPV4(flow_sig.addr.v4.src_ip), NAT64_LOG_DST_IPV4(flow_sig.addr.v4.dst_ip),
+												NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)), NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
 
 	// Update the last seen timestamp
 	flow_value->last_seen = bpf_ktime_get_ns();

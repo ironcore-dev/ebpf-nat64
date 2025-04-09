@@ -111,16 +111,6 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 		return NAT64_ERROR; 
 	}
 
-	if (ip_version == NAT64_IP_VERSION_V4) {
-		NAT64_LOG_DEBUG("Filled a flow signature", NAT64_LOG_L4_PROTOCOL(flow_sig->protocol),
-						NAT64_LOG_SRC_IPV4(flow_sig->addr.v4.src_ip), NAT64_LOG_DST_IPV4(flow_sig->addr.v4.dst_ip),
-						NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig->src_port)), NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig->dst_port)));
-	} else {
-		NAT64_LOG_DEBUG("Filled a flow signature", NAT64_LOG_L4_PROTOCOL(flow_sig->protocol),
-						NAT64_LOG_SRC_IPV6(flow_sig->addr.v6.src_ip6.u6_addr8), NAT64_LOG_DST_IPV6(flow_sig->addr.v6.dst_ip6.u6_addr8),
-						NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig->src_port)), NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig->dst_port)));
-	}
-
 	return NAT64_OK;
 }
 
@@ -162,11 +152,6 @@ store_nat64_flow_records(const struct nat64_table_tuple *outgoing_flow_sig,
 	__builtin_memcpy(incoming_flow_value.addr.original_ip6, outgoing_flow_sig->addr.v6.src_ip6.u6_addr8, NAT64_IPV6_ADDR_LENGTH);
 	incoming_flow_value.last_seen = outgoing_flow_value->last_seen;
 	incoming_flow_value.timeout_value = outgoing_flow_value->timeout_value;
-
-	NAT64_LOG_DEBUG("Created incoming flow signature (reversion)", NAT64_LOG_L4_PROTOCOL(incoming_flow_sig.protocol),
-					NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(incoming_flow_sig.src_port)), NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(incoming_flow_sig.dst_port)),
-					NAT64_LOG_SRC_IPV4(incoming_flow_sig.addr.v4.src_ip), NAT64_LOG_DST_IPV4(incoming_flow_sig.addr.v4.dst_ip));
-
 
 	// Store incoming (v4 to v6) flow in nat64_v4_v6_map
 	ret = bpf_map_update_elem(&nat64_v4_v6_map, &incoming_flow_sig, &incoming_flow_value, BPF_NOEXIST);
