@@ -24,6 +24,7 @@ convert_icmpv6_to_icmpv4(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, con
 	__u8 type;
 	__be32 cksum_tmp;
 
+
 	struct icmp6hdr icmp6_hdr = {0};
 	struct icmphdr *icmp_hdr;
 
@@ -40,9 +41,7 @@ convert_icmpv6_to_icmpv4(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, con
 	icmp_hdr->un.echo.id = flow_value->port.nat64_port;
 	icmp_hdr->checksum = 0;
 
-	cksum_tmp = icmp_wsum_accumulate(data + sizeof(struct ethhdr) + sizeof(struct iphdr), data_end, l4_length);
-	icmp_hdr->checksum = csum_fold(cksum_tmp);
-
+	icmp_hdr->checksum = compute_icmp_cksum(data + sizeof(struct ethhdr) + sizeof(struct iphdr), data_end, l4_length);
 }
 
 
@@ -50,7 +49,7 @@ __attribute__((__always_inline__)) static void
 convert_icmpv4_to_icmpv6(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, struct ipv6hdr *ipv6_hdr, const struct nat64_table_value *flow_value) {
 	__u8 type;
 	__u16 cksum;
-	__be32 icmp6_cksum, ipv6_pseudo_hdr_cksum, cksum_tmp;
+	__be32 icmp6_cksum, ipv6_pseudo_hdr_cksum = 0, cksum_tmp;
 
 	void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
@@ -64,10 +63,7 @@ convert_icmpv4_to_icmpv6(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, str
 	icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.original_port;
 	icmp6_hdr->icmp6_cksum = 0;
 
-	ipv6_pseudo_hdr_cksum = ipv6_pseudohdr_checksum(ipv6_hdr, IPPROTO_ICMPV6, bpf_ntohs(ipv6_hdr->payload_len), 0);
-	icmp6_cksum = icmp_wsum_accumulate(data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr), data_end, l4_length);
-	cksum_tmp = csum_add(ipv6_pseudo_hdr_cksum, icmp6_cksum);
-	icmp6_hdr->icmp6_cksum = csum_fold(cksum_tmp);
+	icmp6_hdr->icmp6_cksum = compute_icmp6_cksum(ipv6_hdr, data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr), data_end, l4_length);
 }
 
 __attribute__((__always_inline__)) static int
