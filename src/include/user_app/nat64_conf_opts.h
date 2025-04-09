@@ -1,4 +1,3 @@
-
 #ifndef NAT64_CONF_OPTS_H
 #define NAT64_CONF_OPTS_H
 
@@ -21,6 +20,7 @@ __u16 nat64_get_log_level(void);
 bool nat64_get_enable_multi_page_mode(void);
 bool nat64_get_enable_json_log(void);
 bool nat64_get_enable_test_mode(void);
+int nat64_get_forwarding_mode(void);
 
 
 #endif

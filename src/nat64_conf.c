@@ -180,6 +180,7 @@ int nat64_set_kernel_config(void)
 		.log_level = nat64_get_log_level(),
 		.disable_cksum_recalc = nat64_get_disable_cksum_recalc_flag(),
 		.test_mode = nat64_get_enable_test_mode(),
+		.forwarding_mode = nat64_get_forwarding_mode(),
 	};
 
 	ret = bpf_map_update_elem(nat64_get_kernel_config_map_fd(), &key, &config, BPF_NOEXIST);

@@ -7,6 +7,7 @@
 
 #define NAT64_OK 0
 #define NAT64_ERROR (-1)
+#define NAT64_IGNORE 1
 
 #define NAT64_FAILED(RET) \
 	((RET) < 0)
@@ -35,6 +36,12 @@
 #define NAT64_KERNEL_CONFIG_MAP_KEY 0
 
 
+// Define pkt forwarding mode
+#define NAT64_PKT_FORWARDING_MODE_KERNEL	0
+#define NAT64_PKT_FORWARDING_MODE_TX		1
+#define NAT64_PKT_FORWARDING_MODE_REDIRECT	2
+
+
 enum nat64_ip_version {
 	NAT64_IP_VERSION_NON,
 	NAT64_IP_VERSION_V4,
@@ -54,6 +61,7 @@ struct nat64_kernel_config {
 	__u8 log_level;
 	__u8 disable_cksum_recalc;
 	__u8 test_mode;
+	__u8 forwarding_mode;
 };
 
 
