@@ -12,7 +12,7 @@ static __always_inline void reduce_func(__u32 *csum_buffer)
 	*csum_buffer = (tmp > 0xFFFF) ? tmp - 0xFFFF : tmp;
 }
 
-#define REDUCE {reduce_func(&csum_buffer);}
+#define REDUCE {reduce_func(&csum_buffer); }
 
 
 /** helper functions copied from https://github.com/cilium/cilium/blob/main/bpf/include/bpf/csum.h **/
@@ -54,13 +54,11 @@ static __always_inline void calc_pseudo_ip_ip6_csum(__u32 *csum, int proto,
 		csum_buffer += bpf_htons(bpf_ntohs(iph->tot_len) - sizeof(struct iphdr)); REDUCE
 
 	} else {
-		for(int i = 0; i < 16; i += 2)	{
+		for(int i = 0; i < 16; i += 2)
 			csum_buffer += ipv6_hdr->saddr.in6_u.u6_addr8[i] + (ipv6_hdr->saddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
-		}
 
-		for(int i = 0; i < 16; i += 2)	{
+		for(int i = 0; i < 16; i += 2)
 			csum_buffer += ipv6_hdr->daddr.in6_u.u6_addr8[i] + (ipv6_hdr->daddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
-		}
 
 		csum_buffer += (__u16)ipv6_hdr->nexthdr << 8; REDUCE
 		csum_buffer += ipv6_hdr->payload_len; REDUCE
@@ -98,10 +96,7 @@ static __always_inline __u16 update_tcp_udp_checksum(__u32 old_cksum, __u16 old_
 	csum_buffer += (~old_port & 0xFFFF); REDUCE
 	csum_buffer += new_port; REDUCE
 
-	__u16 csum = (__u16)csum_buffer + (__u16)(csum_buffer >> 16);
-	csum = ~csum;
-
-	return csum;
+	return csum_fold(csum_buffer);
 }
 
 static inline __u16 compute_ipv4_hdr_checksum(const __u16 *buf, int bufsz)
@@ -128,19 +123,17 @@ static inline __u16 compute_ipv4_hdr_checksum(const __u16 *buf, int bufsz)
 static __always_inline
 __u32 icmp_icmp6_csum_accumulate(void *data_start, void *data_end, int sample_len)
 {
-	/* Unrolled loop to calculate the checksum of the ICMP sample
-	 * Done manually because the compiler refuses with #pragma unroll
-	 */
 	__u32 csum_buffer = 0;
 
 	#define body(i) if ((i) > sample_len) \
 		return csum_buffer; \
 	if (data_start + (i) + sizeof(__u16) > data_end) { \
 		if (data_start + (i) + sizeof(__u8) <= data_end)\
-			csum_buffer += *(__u8 *)(data_start + (i)); \
+			csum_buffer += *(__u8 *)(data_start + (i)); REDUCE \
 		return csum_buffer; \
 	} \
-	csum_buffer += *(__u16 *)(data_start + (i));
+	csum_buffer += *(__u16 *)(data_start + (i)); \
+	REDUCE
 
 	#define body4(i) body(i)\
 		body(i + 2) \
