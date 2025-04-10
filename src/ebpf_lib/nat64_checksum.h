@@ -13,8 +13,8 @@
 
 static __always_inline void reduce_func(__u32 *csum_buffer)
 {
-	__u32 tmp = (*csum_buffer >> 16) + (*csum_buffer & 0xFFFF);
-	*csum_buffer = (tmp > 0xFFFF) ? tmp - 0xFFFF : tmp;
+	__u32 csum_buffer_tmp = (*csum_buffer >> 16) + (*csum_buffer & 0xFFFF);
+	*csum_buffer = (csum_buffer_tmp > 0xFFFF) ? csum_buffer_tmp - 0xFFFF : csum_buffer_tmp;
 }
 
 #define REDUCE {reduce_func(&csum_buffer); }
@@ -47,11 +47,13 @@ static __always_inline void calc_pseudo_ip_ip6_csum(__u32 *csum, int proto,
 		csum_buffer += bpf_htons(bpf_ntohs(iph->tot_len) - sizeof(struct iphdr)); REDUCE
 
 	} else {
+		#pragma clang loop unroll(disable)
 		for (int i = 0; i < 16; i += 2)
-			csum_buffer += ipv6_hdr->saddr.in6_u.u6_addr8[i] + (ipv6_hdr->saddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
+			csum_buffer += (ipv6_hdr->saddr.in6_u.u6_addr8[i]) + (ipv6_hdr->saddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
 
+		#pragma clang loop unroll(disable)
 		for (int i = 0; i < 16; i += 2)
-			csum_buffer += ipv6_hdr->daddr.in6_u.u6_addr8[i] + (ipv6_hdr->daddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
+			csum_buffer += (ipv6_hdr->daddr.in6_u.u6_addr8[i]) + (ipv6_hdr->daddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
 
 		csum_buffer += (__u16)ipv6_hdr->nexthdr << 8; REDUCE
 		csum_buffer += ipv6_hdr->payload_len; REDUCE
@@ -94,31 +96,28 @@ static __always_inline __u16 update_tcp_udp_checksum(__u32 old_cksum, __u16 old_
 
 static inline __u16 compute_ipv4_hdr_checksum(const __u16 *buf, int bufsz)
 {
-	__u32 sum = 0;
+	__u32 csum_buffer = 0;
 
 	while (bufsz > 1) {
-		sum += *buf;
+		csum_buffer += *buf;
 		buf++;
 		bufsz -= 2;
 	}
 
 	if (bufsz == 1) {
-		sum += *(__u8 *)buf;
+		csum_buffer += *(__u8 *)buf;
 	}
 
-	sum = (sum & 0xffff) + (sum >> 16);
-	sum = (sum & 0xffff) + (sum >> 16);
-
-	return ~sum;
+	return csum_fold(csum_buffer);
 }
 
 // borrowed from https://github.com/cilium/cilium/blob/main/bpf/lib/lb.h#L2147, with fix
 static __always_inline
-__u32 icmp_icmp6_csum_accumulate(void *data_start, void *data_end, int sample_len)
+__u32 icmp_icmp6_csum_accumulate(void *data_start, void *data_end, int sample_len, __u32 prev_csum)
 {
-	__u32 csum_buffer = 0;
+	__u32 csum_buffer = prev_csum;
 
-	#define body(i) if ((i) > sample_len) \
+	#define body(i) if ((i) >= sample_len) \
 		return csum_buffer; \
 	if (data_start + (i) + sizeof(__u16) > data_end) { \
 		if (data_start + (i) + sizeof(__u8) <= data_end)\
@@ -147,7 +146,9 @@ __u32 icmp_icmp6_csum_accumulate(void *data_start, void *data_end, int sample_le
 	body128(128)
 	body128(256)
 	body128(384)
-	body128(512)
+
+	body(512)
+	body(514)
 
 	return csum_buffer;
 }
@@ -157,7 +158,7 @@ __u16 compute_icmp_cksum(void *data_begin, void *data_end, int sample_len)
 {
 	__u32 cksum_tmp = 0;
 
-	cksum_tmp = icmp_icmp6_csum_accumulate(data_begin, data_end, sample_len);
+	cksum_tmp = icmp_icmp6_csum_accumulate(data_begin, data_end, sample_len, 0);
 
 	return csum_fold(cksum_tmp);
 }
@@ -168,11 +169,10 @@ __u16 compute_icmp6_cksum(struct ipv6hdr *ipv6_hdr, void *data_begin, void *data
 	__u32 icmp6_cksum = 0, ipv6_pseudo_hdr_cksum = 0, csum_buffer = 0;
 
 	calc_pseudo_ip_ip6_csum(&ipv6_pseudo_hdr_cksum, NAT64_IP_VERSION_V6, ipv6_hdr, NULL);
-	icmp6_cksum = icmp_icmp6_csum_accumulate(data_begin, data_end, sample_len);
+	icmp6_cksum = icmp_icmp6_csum_accumulate(data_begin, data_end, sample_len, 0); REDUCE
 	csum_buffer = ipv6_pseudo_hdr_cksum + icmp6_cksum; REDUCE
 
-	return csum_fold(csum_buffer);
+	return (~csum_buffer & 0xffff);
 }
-
 
 #endif

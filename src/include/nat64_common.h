@@ -45,6 +45,8 @@
 #define NAT64_PKT_FORWARDING_MODE_TX		1
 #define NAT64_PKT_FORWARDING_MODE_REDIRECT	2
 
+#define NAT64_V6_V4_HDR_LENGTH_DIFF ((int)(sizeof(struct ipv6hdr) - sizeof(struct iphdr)))
+#define NAT64_EHT_IPv6_ICMPv6_HDR_LEN ((int)(sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct icmp6hdr)))
 
 enum nat64_ip_version {
 	NAT64_IP_VERSION_NON,

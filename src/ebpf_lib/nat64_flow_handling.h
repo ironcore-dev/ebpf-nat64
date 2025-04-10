@@ -64,6 +64,8 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 					__u8 ip_version, void *ip_hdr, 
 					__u8 nxt_hdr, void *nxt_ptr)
 {
+	int ret;
+
 	flow_sig->version = ip_version;
 	flow_sig->protocol = nxt_hdr;
 
@@ -105,12 +107,20 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 		struct icmphdr *icmp_hdr = (struct icmphdr *)nxt_ptr;
 		assert_len(icmp_hdr, data_end);
 
-		if (icmp_hdr->type != ICMP_ECHO && icmp_hdr->type != ICMP_ECHOREPLY) {
-			NAT64_LOG_ERROR("Does not support other icmp type", );
+		if (icmp_hdr->type == ICMP_ECHO || icmp_hdr->type == ICMP_ECHOREPLY) {
+			flow_sig->src_port = (__be16)icmp_hdr->type;
+			flow_sig->dst_port = icmp_hdr->un.echo.id;
+		} else if (icmp_hdr->type == ICMP_DEST_UNREACH) {
+			bpf_printk("parse icmp dest unreach msg");
+			ret = parse_icmp_err_msg(flow_sig, data_end, icmp_hdr, (void *)(icmp_hdr + 1));
+			if (NAT64_FAILED(ret)) {
+				NAT64_LOG_ERROR("Failed to parse icmp error message");
+				return NAT64_ERROR;
+			}
+		} else {
+			NAT64_LOG_ERROR("Unsupported ICMP type", NAT64_LOG_ICMP_TYPE(icmp_hdr->type));
 			return NAT64_ERROR;
 		}
-		flow_sig->src_port = (__be16)icmp_hdr->type;
-		flow_sig->dst_port = icmp_hdr->un.echo.id;
 	} else {
 		NAT64_LOG_ERROR("Unsupported L4 protocol", NAT64_LOG_L4_PROTOCOL(nxt_hdr));
 		return NAT64_ERROR; 

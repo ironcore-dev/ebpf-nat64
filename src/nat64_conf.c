@@ -52,7 +52,7 @@ int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
 
 	if (token != NULL) {
 		// More than three combinations, return error
-		NAT64_LOG_ERROR("More than allowed addr:port combinations provided", NAT64_LOG_VALUE(NAT64_ADDR_PORT_POOL_SIZE));
+		NAT64_LOG_ERROR("More than allowed addr:port combinations provided", NAT64_LOG_UINT_VALUE(NAT64_ADDR_PORT_POOL_SIZE));
 		return NAT64_ERROR;
 	}
 	return NAT64_OK;
@@ -79,7 +79,7 @@ static int parse_attach_iface_str(const char *nat64_attach_iface_str, enum nat64
 	}
 
 	if (token != NULL) {
-		NAT64_LOG_ERROR("More than allowed interfaces provided", NAT64_LOG_VALUE(NAT64_ATTACH_IFACE_MAX_CNT));
+		NAT64_LOG_ERROR("More than allowed interfaces provided", NAT64_LOG_UINT_VALUE(NAT64_ATTACH_IFACE_MAX_CNT));
 		free(iface_str);
 		return NAT64_ERROR;
 	}
@@ -154,7 +154,7 @@ static void print_iface_indexes(void)
 	
 	for (int i = 0; i < iface_cnt; i++)
 		NAT64_LOG_INFO("Added an interface index", NAT64_LOG_IFACE_INDEX(attach_iface_info[i].iface_index),
-						NAT64_LOG_VALUE(attach_iface_info[i].direction));
+						NAT64_LOG_UINT_VALUE(attach_iface_info[i].direction));
 }
 
 void nat64_print_parsed_results(void)

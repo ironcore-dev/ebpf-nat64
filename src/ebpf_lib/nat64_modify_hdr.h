@@ -20,7 +20,7 @@
 #include "include/nat64_table_tuple.h"
 #include "nat64_kern_log.h"
 
-#define NAT64_V6_V4_HDR_LENGTH_DIFF ((int)(sizeof(struct ipv6hdr) - sizeof(struct iphdr)))
+#include "nat64_icmp_error_handling.h"
 
 
 __attribute__((__always_inline__)) static void
@@ -48,29 +48,6 @@ convert_icmpv6_to_icmpv4(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, con
 
 	if (__is_icmp_icmp6_cksum_recalc_enabled)
 		icmp_hdr->checksum = compute_icmp_cksum(data + sizeof(struct ethhdr) + sizeof(struct iphdr), data_end, l4_length);
-}
-
-
-__attribute__((__always_inline__)) static void
-convert_icmpv4_to_icmpv6(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, struct ipv6hdr *ipv6_hdr, const struct nat64_table_value *flow_value) {
-	__u8 type;
-	__u16 cksum;
-	__be32 icmp6_cksum, ipv6_pseudo_hdr_cksum = 0, cksum_tmp;
-
-	void *data = (void *)(long)ctx->data;
-	void *data_end = (void *)(long)ctx->data_end;
-
-	type = ((struct icmphdr *)nxt_ptr)->type;
-	struct icmp6hdr *icmp6_hdr = (struct icmp6hdr *)nxt_ptr;
-	if (type == ICMP_ECHO)
-		icmp6_hdr->icmp6_type = ICMPV6_ECHO_REQUEST;
-	else
-		icmp6_hdr->icmp6_type = ICMPV6_ECHO_REPLY;
-	icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.original_port;
-	icmp6_hdr->icmp6_cksum = 0;
-
-	if (__is_icmp_icmp6_cksum_recalc_enabled)
-		icmp6_hdr->icmp6_cksum = compute_icmp6_cksum(ipv6_hdr, data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr), data_end, l4_length);
 }
 
 __attribute__((__always_inline__)) static int
@@ -124,6 +101,191 @@ convert_tcp_udp_proto_port(struct xdp_md *ctx, struct ipv6hdr *ipv6_hdr, struct 
 	return NAT64_OK;
 }
 
+__attribute__((__always_inline__)) static int
+convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_value *flow_value)
+{
+	char cached_hdrs[NAT64_EHT_IPv6_ICMPv6_HDR_LEN] = {0};
+	struct ipv6hdr tmp_inner_ipv6_hdr = {0};
+	int ret;
+	__u16 truncated_length = 0;
+	void *data, *data_end;
+
+	data = (void *)(long)ctx->data;
+	data_end = (void *)(long)ctx->data_end;
+
+	struct ipv6hdr *outer_ipv6_hdr = (struct ipv6hdr *)(data + sizeof(struct ethhdr));
+	assert_len(outer_ipv6_hdr, data_end);
+	__u16 l4_length = bpf_ntohs(outer_ipv6_hdr->payload_len);
+
+	// cache the outer headers
+	bpf_probe_read_kernel(cached_hdrs, NAT64_EHT_IPv6_ICMPv6_HDR_LEN, (void *)(long)ctx->data);
+
+	// remove outer eth/ipv6/icmp6 hdr
+	if (bpf_xdp_adjust_head(ctx, NAT64_EHT_IPv6_ICMPv6_HDR_LEN)) 
+		return NAT64_ERROR;
+
+	data = (void *)(long)ctx->data;
+	data_end = (void *)(long)ctx->data_end;
+
+	struct iphdr *inner_ipv4_hdr = (struct iphdr *)data;
+	assert_len(inner_ipv4_hdr, data_end);
+
+	struct iphdr inner_ipv4_tmp = {0};
+	memcpy(&inner_ipv4_tmp, inner_ipv4_hdr, sizeof(struct iphdr));
+
+	// Convert inner IPv4 header to IPv6
+	struct ipv6hdr tmp_inner_ipv6 = {
+		.version = 6,
+		.flow_lbl = {0},
+		.payload_len = bpf_htons(bpf_ntohs(inner_ipv4_hdr->tot_len) - sizeof(struct iphdr)),
+		.nexthdr =  inner_ipv4_hdr->protocol,
+		.hop_limit = inner_ipv4_hdr->ttl,
+	};
+	memcpy(&tmp_inner_ipv6.saddr, flow_value->addr.original_ip6, sizeof(tmp_inner_ipv6.saddr));
+	memcpy(&tmp_inner_ipv6.daddr, &nat64_ipv6_prefix, 12);
+	memcpy(&tmp_inner_ipv6.daddr.s6_addr32[3], &inner_ipv4_hdr->daddr, 4);
+
+	// Adjust packet size to expand inner IPv4 header to IPv6
+	if (bpf_xdp_adjust_head(ctx, - NAT64_V6_V4_HDR_LENGTH_DIFF) != 0) {
+		return NAT64_ERROR;
+	}
+
+	data = (void *)(long)ctx->data;
+	data_end = (void *)(long)ctx->data_end;
+
+	struct ipv6hdr *inner_ipv6 = (struct ipv6hdr *)data;
+	assert_len(inner_ipv6, data_end);
+	memcpy(inner_ipv6, &tmp_inner_ipv6, sizeof(tmp_inner_ipv6));
+
+	// continue to change the inner l4 protocol header
+	if (inner_ipv6->nexthdr == IPPROTO_TCP || inner_ipv6->nexthdr == IPPROTO_UDP) {
+		if (inner_ipv6->nexthdr == IPPROTO_TCP) {
+			struct tcphdr *tcp_hdr = (struct tcphdr *)(inner_ipv6 + 1);
+			assert_len(tcp_hdr, data_end);
+		} else {
+			struct udphdr *udp_hdr = (struct udphdr *)(inner_ipv6 + 1);
+			assert_len(udp_hdr, data_end);
+		}
+		ret = convert_tcp_udp_proto_port(ctx, inner_ipv6, &inner_ipv4_tmp,
+										inner_ipv6->nexthdr, (void *)(inner_ipv6 + 1), NAT64_FLOW_DIRECTION_OUTGOING,
+										flow_value); // used flow_value's nat64_port, which should be same as original_port
+		if (NAT64_FAILED(ret)) {
+			NAT64_LOG_ERROR("Failed to change inner L4 proto port");
+			return NAT64_ERROR;
+		}
+	} else {
+		NAT64_LOG_ERROR("Unsupported inner IPv4 icmp err L4 protocol", NAT64_LOG_L4_PROTOCOL(inner_ipv6->nexthdr));
+		return NAT64_ERROR;
+	}
+
+	// truncate piggybacked data to facilitate cksum computation
+	if (l4_length > NAT64_ICMP6_MAX_MSG_SIZE) {
+		// allowed bytes count is smaller due to change of inner header (v4 ->v6)
+		truncated_length = l4_length - (NAT64_ICMP6_MAX_MSG_SIZE - NAT64_V6_V4_HDR_LENGTH_DIFF);
+		if (data + truncated_length > data_end) {
+			NAT64_LOG_ERROR("Packet too small after head adjust");
+			return NAT64_ERROR;
+		}
+
+		if (bpf_xdp_adjust_tail(ctx, truncated_length) != 0) {
+			NAT64_LOG_ERROR("Failed to truncate piggybacked data from icmp err msg");
+			return NAT64_ERROR;
+		}
+	}
+
+	// restore the cached outer headers
+	if (bpf_xdp_adjust_head(ctx, - NAT64_EHT_IPv6_ICMPv6_HDR_LEN)) // expand the header's head space
+		return NAT64_ERROR;
+
+	data = (void *)(long)ctx->data;
+	data_end = (void *)(long)ctx->data_end;
+
+	struct ethhdr *restore_eth = data;
+	assert_len(restore_eth, data_end);
+
+	if (data + NAT64_EHT_IPv6_ICMPv6_HDR_LEN > data_end) {
+		NAT64_LOG_ERROR("Packet too small after head adjust");
+		return NAT64_ERROR;
+	}
+	memcpy(data, cached_hdrs, NAT64_EHT_IPv6_ICMPv6_HDR_LEN);
+
+	// adjust the outer ipv6 payload length after one or two adjustment
+	struct ipv6hdr *restore_ipv6 = (struct ipv6hdr *)(data + sizeof(struct ethhdr));
+	assert_len(restore_ipv6, data_end);
+
+	restore_ipv6->payload_len = bpf_htons(bpf_ntohs(restore_ipv6->payload_len)
+										+ NAT64_V6_V4_HDR_LENGTH_DIFF
+										- truncated_length);
+
+	return NAT64_OK;
+}
+
+__attribute__((__always_inline__)) static int
+convert_icmpv4_to_icmpv6(struct xdp_md *ctx, struct icmphdr *icmp_hdr,
+						const struct nat64_table_value *flow_value) {
+	int ret;
+	__u16 cksum;
+	__be32 icmp6_cksum, ipv6_pseudo_hdr_cksum, cksum_tmp;
+	struct icmphdr cached_icmp_hdr = {0};
+	struct icmp6hdr *icmp6_hdr;
+
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
+
+	memcpy(&cached_icmp_hdr, icmp_hdr, sizeof(struct icmphdr));
+
+	icmp6_hdr = (struct icmp6hdr *)icmp_hdr;
+	icmp6_hdr->icmp6_cksum = 0;
+
+	switch (cached_icmp_hdr.type) {
+		case ICMP_ECHO:
+			icmp6_hdr->icmp6_type = ICMPV6_ECHO_REQUEST;
+			icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.nat64_port;
+			break;
+		case ICMP_ECHOREPLY:
+			icmp6_hdr->icmp6_type = ICMPV6_ECHO_REPLY;
+			icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.nat64_port;
+			break;
+		case ICMP_DEST_UNREACH:
+			bpf_printk("process a icmpv4 dest unreach msg");
+			ret = convert_icmpv4_to_icmpv6_dest_unreach(&cached_icmp_hdr, icmp6_hdr);
+			if (NAT64_FAILED(ret)) {
+				NAT64_LOG_ERROR("Failed to convert icmpv4 dest unreach to icmpv6 dest unreach");
+				return NAT64_ERROR;
+			}
+			
+			ret = convert_icmpv4_icmpv6_inner_hdrs(ctx, flow_value);
+			if (NAT64_FAILED(ret)) {
+				NAT64_LOG_ERROR("Failed to convert icmpv4 dest unreach inner hdrs");
+				return NAT64_ERROR;
+			}
+
+			NAT64_LOG_DEBUG("Converted ICMP dest unreach to ICMPv6 dest unreach", NAT64_LOG_ICMP_CODE(cached_icmp_hdr.code));
+			break;
+		default:
+			NAT64_LOG_ERROR("Unsupported ICMP type", NAT64_LOG_ICMP_TYPE(cached_icmp_hdr.type));
+			return NAT64_ERROR;
+	}
+
+
+	data = (void *)(long)ctx->data;
+	data_end = (void *)(long)ctx->data_end;
+
+	struct ipv6hdr *ipv6_hdr = (struct ipv6hdr *)(data + sizeof(struct ethhdr));
+	assert_len(ipv6_hdr, data_end);
+
+	icmp6_hdr = (struct icmp6hdr *)(ipv6_hdr + 1);
+	assert_len(icmp6_hdr, data_end);
+	icmp6_hdr->icmp6_cksum = 0;
+
+	if (__is_icmp_icmp6_cksum_recalc_enabled) {
+		icmp6_hdr->icmp6_cksum = compute_icmp6_cksum(ipv6_hdr, data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr), data_end, bpf_ntohs(ipv6_hdr->payload_len));
+		// icmp6_hdr->icmp6_cksum = recalculate_icmpv6_cksum(ipv6_hdr, (void *)icmp6_hdr, data_end, bpf_ntohs(ipv6_hdr->payload_len));
+	}
+	
+	return NAT64_OK;
+}
+
 
 __attribute__((__always_inline__)) static int
 modify_l4_proto_hdr(struct xdp_md *ctx, 
@@ -136,7 +298,7 @@ modify_l4_proto_hdr(struct xdp_md *ctx,
 
 	void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
-	
+
 	if (nxt_hdr_type == IPPROTO_TCP || nxt_hdr_type == IPPROTO_UDP) {
 		if (nxt_hdr_type == IPPROTO_TCP) {
 			struct tcphdr *tcp_hdr = (struct tcphdr *)l4_hdr;
@@ -148,7 +310,7 @@ modify_l4_proto_hdr(struct xdp_md *ctx,
 		ret = convert_tcp_udp_proto_port(ctx, ipv6_hdr, ipv4_hdr, nxt_hdr_type, l4_hdr, flow_direction, flow_value);
 		if (NAT64_FAILED(ret)) {
 			NAT64_LOG_ERROR("Failed to change L4 proto port");
-			return XDP_DROP;
+			return NAT64_ERROR;
 		}
 	} else if (nxt_hdr_type == IPPROTO_ICMPV6) {
 		struct icmp6hdr *icmp6_hdr = (struct icmp6hdr *)l4_hdr;
@@ -159,7 +321,8 @@ modify_l4_proto_hdr(struct xdp_md *ctx,
 		struct icmphdr *icmp_hdr = (struct icmphdr *)l4_hdr;
 		assert_len(icmp_hdr, data_end);
 		
-		convert_icmpv4_to_icmpv6(ctx, l4_hdr, bpf_ntohs(ipv6_hdr->payload_len), ipv6_hdr, flow_value);
+		bpf_printk("convert icmpv4 to icmpv6\n");
+		convert_icmpv4_to_icmpv6(ctx, icmp_hdr, flow_value);
 	} else {
 		NAT64_LOG_ERROR("Unsupported L4 protocol of outgoing traffic", NAT64_LOG_L4_PROTOCOL(nxt_hdr_type));
 		return NAT64_ERROR;
@@ -169,7 +332,8 @@ modify_l4_proto_hdr(struct xdp_md *ctx,
 }
 
 static __always_inline int
-convert_v4_pkt_to_v6_pkt(struct xdp_md *ctx, const struct nat64_table_value *flow_value,
+convert_v4_pkt_to_v6_pkt(struct xdp_md *ctx,
+						const struct nat64_table_value *flow_value,
 						struct ethhdr *eth_hdr, struct iphdr *ipv4_hdr)
 {
 	int ret;
@@ -243,7 +407,7 @@ convert_v6_pkt_to_v4_pkt(struct xdp_md *ctx, const struct nat64_table_value *flo
 		.tos = 0,
 		.tot_len = bpf_htons(bpf_ntohs(ipv6_hdr->payload_len) + sizeof(struct iphdr)),
 		.id = 0,
-		.frag_off = bpf_htons(0x01 << 14),
+		.frag_off = bpf_htons(0x01 << 14), // set DO NOT FRAGMENT flag
 		.ttl = ipv6_hdr->hop_limit,
 		.protocol = (nxt_hdr_type == IPPROTO_ICMPV6)? IPPROTO_ICMP : ipv6_hdr->nexthdr,
 		.saddr = flow_value->addr.nat64_v4_addr,
