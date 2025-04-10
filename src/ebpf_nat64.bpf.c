@@ -49,8 +49,10 @@ process_ipv6_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 		return NAT64_ERROR;
 
 	NAT64_LOG_DEBUG("Filled an IPv6 flow signature", NAT64_LOG_L4_PROTOCOL(flow_sig.protocol),
-											NAT64_LOG_SRC_IPV6(flow_sig.addr.v6.src_ip6.u6_addr8), NAT64_LOG_DST_IPV6(flow_sig.addr.v6.dst_ip6.u6_addr8),
-											NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)), NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
+											NAT64_LOG_SRC_IPV6(flow_sig.addr.v6.src_ip6.u6_addr8),
+											NAT64_LOG_DST_IPV6(flow_sig.addr.v6.dst_ip6.u6_addr8),
+											NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)),
+											NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
 
 	flow_value = bpf_map_lookup_elem(&nat64_v6_v4_map, &flow_sig);
 
@@ -112,8 +114,10 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 		return NAT64_IGNORE;
 
 	NAT64_LOG_DEBUG("Filled an IPv4 flow signature", NAT64_LOG_L4_PROTOCOL(flow_sig.protocol),
-												NAT64_LOG_SRC_IPV4(flow_sig.addr.v4.src_ip), NAT64_LOG_DST_IPV4(flow_sig.addr.v4.dst_ip),
-												NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)), NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
+												NAT64_LOG_SRC_IPV4(flow_sig.addr.v4.src_ip),
+												NAT64_LOG_DST_IPV4(flow_sig.addr.v4.dst_ip),
+												NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)),
+												NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
 
 	// Update the last seen timestamp
 	flow_value->last_seen = bpf_ktime_get_ns();
@@ -133,7 +137,8 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 }
 
 
-static __always_inline int nat64_send_packet(struct xdp_md *ctx) {
+static __always_inline int nat64_send_packet(struct xdp_md *ctx)
+{
 	struct bpf_fib_lookup fib_params = {};
 	int ret;
 
@@ -141,12 +146,14 @@ static __always_inline int nat64_send_packet(struct xdp_md *ctx) {
 	void *data_end = (void *)(long)ctx->data_end;
 
 	struct ethhdr *eth = data;
+
 	if ((void *)(eth + 1) > data_end)
 		return XDP_DROP;
 
 	// Determine the protocol (IPv4 or IPv6)
 	if (eth->h_proto == bpf_htons(ETH_P_IP)) {
 		struct iphdr *ip_hdr = (struct iphdr *)(eth + 1);
+
 		if ((void *)(ip_hdr + 1) > data_end)
 			return XDP_DROP;
 
@@ -157,6 +164,7 @@ static __always_inline int nat64_send_packet(struct xdp_md *ctx) {
 		fib_params.tos = ip_hdr->tos;
 	} else if (eth->h_proto == bpf_htons(ETH_P_IPV6)) {
 		struct ipv6hdr *ipv6_hdr = (struct ipv6hdr *)(eth + 1);
+
 		if ((void *)(ipv6_hdr + 1) > data_end)
 			return XDP_DROP;
 
@@ -220,7 +228,7 @@ nat64_process_l2(struct xdp_md *ctx)
 	else {
 		if (__forwarding_mode == NAT64_PKT_FORWARDING_MODE_KERNEL)
 			return XDP_PASS;
-		else 
+		else
 			return nat64_send_packet(ctx);
 	}
 }

@@ -54,10 +54,10 @@ static __always_inline void calc_pseudo_ip_ip6_csum(__u32 *csum, int proto,
 		csum_buffer += bpf_htons(bpf_ntohs(iph->tot_len) - sizeof(struct iphdr)); REDUCE
 
 	} else {
-		for(int i = 0; i < 16; i += 2)
+		for (int i = 0; i < 16; i += 2)
 			csum_buffer += ipv6_hdr->saddr.in6_u.u6_addr8[i] + (ipv6_hdr->saddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
 
-		for(int i = 0; i < 16; i += 2)
+		for (int i = 0; i < 16; i += 2)
 			csum_buffer += ipv6_hdr->daddr.in6_u.u6_addr8[i] + (ipv6_hdr->daddr.in6_u.u6_addr8[i+1] << 8U); REDUCE
 
 		csum_buffer += (__u16)ipv6_hdr->nexthdr << 8; REDUCE
