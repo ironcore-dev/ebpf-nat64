@@ -59,7 +59,8 @@ struct nat64_ipv6_new_flow_event {
 
 struct nat64_kernel_config {
 	__u8 log_level;
-	__u8 disable_cksum_recalc;
+	__u8 enable_icmp_icmp6_cksum_recalc;
+	__u8 enable_tcp_udp_cksum_recalc;
 	__u8 test_mode;
 	__u8 forwarding_mode;
 };

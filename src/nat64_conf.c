@@ -178,7 +178,8 @@ int nat64_set_kernel_config(void)
 
 	struct nat64_kernel_config config = {
 		.log_level = nat64_get_log_level(),
-		.disable_cksum_recalc = nat64_get_disable_cksum_recalc_flag(),
+		.enable_icmp_icmp6_cksum_recalc = nat64_get_enable_icmp_icmp6_cksum_recalc(),
+		.enable_tcp_udp_cksum_recalc = nat64_get_enable_tcp_udp_cksum_recalc(),
 		.test_mode = nat64_get_enable_test_mode(),
 		.forwarding_mode = nat64_get_forwarding_mode(),
 	};

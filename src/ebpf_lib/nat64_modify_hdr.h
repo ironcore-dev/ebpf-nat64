@@ -41,7 +41,8 @@ convert_icmpv6_to_icmpv4(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, con
 	icmp_hdr->un.echo.id = flow_value->port.nat64_port;
 	icmp_hdr->checksum = 0;
 
-	icmp_hdr->checksum = compute_icmp_cksum(data + sizeof(struct ethhdr) + sizeof(struct iphdr), data_end, l4_length);
+	if (__is_icmp_icmp6_cksum_recalc_enabled)
+		icmp_hdr->checksum = compute_icmp_cksum(data + sizeof(struct ethhdr) + sizeof(struct iphdr), data_end, l4_length);
 }
 
 
@@ -63,7 +64,8 @@ convert_icmpv4_to_icmpv6(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, str
 	icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.original_port;
 	icmp6_hdr->icmp6_cksum = 0;
 
-	icmp6_hdr->icmp6_cksum = compute_icmp6_cksum(ipv6_hdr, data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr), data_end, l4_length);
+	if (__is_icmp_icmp6_cksum_recalc_enabled)
+		icmp6_hdr->icmp6_cksum = compute_icmp6_cksum(ipv6_hdr, data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr), data_end, l4_length);
 }
 
 __attribute__((__always_inline__)) static int
@@ -87,7 +89,7 @@ convert_tcp_udp_proto_port(struct xdp_md *ctx, struct ipv6hdr *ipv6_hdr, struct 
 				new_port = flow_value->port.original_port;
 				tcp_hdr->dest = new_port;
 			}
-			if (!__is_cksum_recalc_disabled)
+			if (__is_tcp_udp_cksum_recalc_enabled)
 				tcp_hdr->check = update_tcp_udp_checksum(tcp_hdr->check, old_port, new_port, ipv6_hdr, ipv4_hdr, direction);
 			else
 				tcp_hdr->check = 0;
@@ -104,7 +106,7 @@ convert_tcp_udp_proto_port(struct xdp_md *ctx, struct ipv6hdr *ipv6_hdr, struct 
 				new_port = flow_value->port.original_port;
 				udp_hdr->dest = new_port;
 			}
-			if (!__is_cksum_recalc_disabled)
+			if (__is_tcp_udp_cksum_recalc_enabled)
 				udp_hdr->check = update_tcp_udp_checksum(udp_hdr->check, old_port, new_port, ipv6_hdr, ipv4_hdr, direction);
 			else
 				udp_hdr->check = 0;
