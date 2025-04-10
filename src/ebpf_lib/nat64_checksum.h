@@ -15,7 +15,6 @@ static __always_inline void reduce_func(__u32 *csum_buffer)
 #define REDUCE {reduce_func(&csum_buffer); }
 
 
-/** helper functions copied from https://github.com/cilium/cilium/blob/main/bpf/include/bpf/csum.h **/
 static __always_inline __u16 csum_fold(__u32 csum)
 {
 	csum = (csum & 0xffff) + (csum >> 16);
@@ -26,17 +25,6 @@ static __always_inline __u16 csum_fold(__u32 csum)
 static __always_inline __u32 csum_unfold(__u16 csum)
 {
 	return (__u32)(~csum & 0xFFFF);
-}
-
-static __always_inline __u32 csum_add(__u32 csum, __u32 addend)
-{
-	csum += addend;
-	return csum + (csum < addend);
-}
-
-static __always_inline __u32 csum_sub(__u32 csum, __u32 addend)
-{
-	return csum_add(csum, ~addend);
 }
 
 static __always_inline void calc_pseudo_ip_ip6_csum(__u32 *csum, int proto,
@@ -119,7 +107,7 @@ static inline __u16 compute_ipv4_hdr_checksum(const __u16 *buf, int bufsz)
 	return ~sum;
 }
 
-// borrowed from https://github.com/cilium/cilium/blob/main/bpf/lib/lb.h#L2147
+// borrowed from https://github.com/cilium/cilium/blob/main/bpf/lib/lb.h#L2147, with fix
 static __always_inline
 __u32 icmp_icmp6_csum_accumulate(void *data_start, void *data_end, int sample_len)
 {
