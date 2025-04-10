@@ -117,10 +117,10 @@ process_ipv4_pkt(struct xdp_md *ctx, void *nxt_ptr, struct ethhdr *eth)
 		return NAT64_IGNORE;
 
 	NAT64_LOG_DEBUG("Filled an IPv4 flow signature", NAT64_LOG_L4_PROTOCOL(flow_sig.protocol),
-												NAT64_LOG_SRC_IPV4(flow_sig.addr.v4.src_ip),
-												NAT64_LOG_DST_IPV4(flow_sig.addr.v4.dst_ip),
-												NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)),
-												NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
+		NAT64_LOG_SRC_IPV4(flow_sig.addr.v4.src_ip),
+		NAT64_LOG_DST_IPV4(flow_sig.addr.v4.dst_ip),
+		NAT64_LOG_L4_PROTO_SRC_PORT(bpf_ntohs(flow_sig.src_port)),
+		NAT64_LOG_L4_PROTO_DST_PORT(bpf_ntohs(flow_sig.dst_port)));
 
 	// Update the last seen timestamp
 	flow_value->last_seen = bpf_ktime_get_ns();
