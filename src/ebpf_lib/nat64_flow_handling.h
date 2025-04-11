@@ -111,7 +111,6 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 			flow_sig->src_port = (__be16)icmp_hdr->type;
 			flow_sig->dst_port = icmp_hdr->un.echo.id;
 		} else if (icmp_hdr->type == ICMP_DEST_UNREACH) {
-			bpf_printk("parse icmp dest unreach msg");
 			ret = parse_icmp_err_msg(flow_sig, data_end, icmp_hdr, (void *)(icmp_hdr + 1));
 			if (NAT64_FAILED(ret)) {
 				NAT64_LOG_ERROR("Failed to parse icmp error message");
