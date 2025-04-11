@@ -121,7 +121,7 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	bpf_probe_read_kernel(cached_hdrs, NAT64_EHT_IPv6_ICMPv6_HDR_LEN, (void *)(long)ctx->data);
 
 	// remove outer eth/ipv6/icmp6 hdr
-	if (bpf_xdp_adjust_head(ctx, NAT64_EHT_IPv6_ICMPv6_HDR_LEN)) 
+	if (bpf_xdp_adjust_head(ctx, NAT64_EHT_IPv6_ICMPv6_HDR_LEN))
 		return NAT64_ERROR;
 
 	data = (void *)(long)ctx->data;
@@ -146,9 +146,8 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	memcpy(&tmp_inner_ipv6.daddr.s6_addr32[3], &inner_ipv4_hdr->daddr, 4);
 
 	// Adjust packet size to expand inner IPv4 header to IPv6
-	if (bpf_xdp_adjust_head(ctx, - NAT64_V6_V4_HDR_LENGTH_DIFF) != 0) {
+	if (bpf_xdp_adjust_head(ctx, (-NAT64_V6_V4_HDR_LENGTH_DIFF)) != 0)
 		return NAT64_ERROR;
-	}
 
 	data = (void *)(long)ctx->data;
 	data_end = (void *)(long)ctx->data_end;
@@ -194,7 +193,7 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	}
 
 	// restore the cached outer headers
-	if (bpf_xdp_adjust_head(ctx, - NAT64_EHT_IPv6_ICMPv6_HDR_LEN)) // expand the header's head space
+	if (bpf_xdp_adjust_head(ctx, (-NAT64_EHT_IPv6_ICMPv6_HDR_LEN))) // expand the header's head space
 		return NAT64_ERROR;
 
 	data = (void *)(long)ctx->data;
@@ -238,33 +237,32 @@ convert_icmpv4_to_icmpv6(struct xdp_md *ctx, struct icmphdr *icmp_hdr,
 	icmp6_hdr->icmp6_cksum = 0;
 
 	switch (cached_icmp_hdr.type) {
-		case ICMP_ECHO:
-			icmp6_hdr->icmp6_type = ICMPV6_ECHO_REQUEST;
-			icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.nat64_port;
-			break;
-		case ICMP_ECHOREPLY:
-			icmp6_hdr->icmp6_type = ICMPV6_ECHO_REPLY;
-			icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.nat64_port;
-			break;
-		case ICMP_DEST_UNREACH:
-			bpf_printk("process a icmpv4 dest unreach msg");
-			ret = convert_icmpv4_to_icmpv6_dest_unreach(&cached_icmp_hdr, icmp6_hdr);
-			if (NAT64_FAILED(ret)) {
-				NAT64_LOG_ERROR("Failed to convert icmpv4 dest unreach to icmpv6 dest unreach");
-				return NAT64_ERROR;
-			}
-			
-			ret = convert_icmpv4_icmpv6_inner_hdrs(ctx, flow_value);
-			if (NAT64_FAILED(ret)) {
-				NAT64_LOG_ERROR("Failed to convert icmpv4 dest unreach inner hdrs");
-				return NAT64_ERROR;
-			}
-
-			NAT64_LOG_DEBUG("Converted ICMP dest unreach to ICMPv6 dest unreach", NAT64_LOG_ICMP_CODE(cached_icmp_hdr.code));
-			break;
-		default:
-			NAT64_LOG_ERROR("Unsupported ICMP type", NAT64_LOG_ICMP_TYPE(cached_icmp_hdr.type));
+	case ICMP_ECHO:
+		icmp6_hdr->icmp6_type = ICMPV6_ECHO_REQUEST;
+		icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.nat64_port;
+		break;
+	case ICMP_ECHOREPLY:
+		icmp6_hdr->icmp6_type = ICMPV6_ECHO_REPLY;
+		icmp6_hdr->icmp6_dataun.u_echo.identifier = flow_value->port.nat64_port;
+		break;
+	case ICMP_DEST_UNREACH:
+		ret = convert_icmpv4_to_icmpv6_dest_unreach(&cached_icmp_hdr, icmp6_hdr);
+		if (NAT64_FAILED(ret)) {
+			NAT64_LOG_ERROR("Failed to convert icmpv4 dest unreach to icmpv6 dest unreach");
 			return NAT64_ERROR;
+		}
+
+		ret = convert_icmpv4_icmpv6_inner_hdrs(ctx, flow_value);
+		if (NAT64_FAILED(ret)) {
+			NAT64_LOG_ERROR("Failed to convert icmpv4 dest unreach inner hdrs");
+			return NAT64_ERROR;
+		}
+
+		NAT64_LOG_DEBUG("Converted ICMP dest unreach to ICMPv6 dest unreach", NAT64_LOG_ICMP_CODE(cached_icmp_hdr.code));
+		break;
+	default:
+		NAT64_LOG_ERROR("Unsupported ICMP type", NAT64_LOG_ICMP_TYPE(cached_icmp_hdr.type));
+		return NAT64_ERROR;
 	}
 
 
@@ -278,11 +276,9 @@ convert_icmpv4_to_icmpv6(struct xdp_md *ctx, struct icmphdr *icmp_hdr,
 	assert_len(icmp6_hdr, data_end);
 	icmp6_hdr->icmp6_cksum = 0;
 
-	if (__is_icmp_icmp6_cksum_recalc_enabled) {
+	if (__is_icmp_icmp6_cksum_recalc_enabled)
 		icmp6_hdr->icmp6_cksum = compute_icmp6_cksum(ipv6_hdr, data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr), data_end, bpf_ntohs(ipv6_hdr->payload_len));
-		// icmp6_hdr->icmp6_cksum = recalculate_icmpv6_cksum(ipv6_hdr, (void *)icmp6_hdr, data_end, bpf_ntohs(ipv6_hdr->payload_len));
-	}
-	
+
 	return NAT64_OK;
 }
 
@@ -321,7 +317,6 @@ modify_l4_proto_hdr(struct xdp_md *ctx,
 		struct icmphdr *icmp_hdr = (struct icmphdr *)l4_hdr;
 		assert_len(icmp_hdr, data_end);
 		
-		bpf_printk("convert icmpv4 to icmpv6\n");
 		convert_icmpv4_to_icmpv6(ctx, icmp_hdr, flow_value);
 	} else {
 		NAT64_LOG_ERROR("Unsupported L4 protocol of outgoing traffic", NAT64_LOG_L4_PROTOCOL(nxt_hdr_type));

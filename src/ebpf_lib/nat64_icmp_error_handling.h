@@ -59,20 +59,20 @@ convert_icmpv4_to_icmpv6_dest_unreach(struct icmphdr *icmp_hdr, struct icmp6hdr 
 	icmp6_hdr->icmp6_type = ICMPV6_DEST_UNREACH;
 
 	switch (icmp_hdr->code) {
-		case ICMP_FRAG_NEEDED:
-			mtu = bpf_ntohs(icmp_hdr->un.frag.mtu) + NAT64_V6_V4_HDR_LENGTH_DIFF; // or just use the same value?
-			if (mtu < 1280) {
-				mtu = 1280;
-				NAT64_LOG_WARNING("Received MTU is too small, set to 1280");
-			}
-			icmp6_hdr->icmp6_type = ICMPV6_PKT_TOOBIG;
-			icmp6_hdr->icmp6_code = 0;
-			icmp6_hdr->icmp6_mtu = bpf_htonl(mtu);
-			icmp6_hdr->icmp6_cksum = 0;
-			break;
-		default:
-			NAT64_LOG_ERROR("Unsupported icmp code", NAT64_LOG_ICMP_CODE(icmp_hdr->code));
-			return NAT64_ERROR;
+	case ICMP_FRAG_NEEDED:
+		mtu = bpf_ntohs(icmp_hdr->un.frag.mtu) + NAT64_V6_V4_HDR_LENGTH_DIFF; // or just use the same value?
+		if (mtu < 1280) {
+			mtu = 1280;
+			NAT64_LOG_WARNING("Received MTU is too small, set to 1280");
+		}
+		icmp6_hdr->icmp6_type = ICMPV6_PKT_TOOBIG;
+		icmp6_hdr->icmp6_code = 0;
+		icmp6_hdr->icmp6_mtu = bpf_htonl(mtu);
+		icmp6_hdr->icmp6_cksum = 0;
+		break;
+	default:
+		NAT64_LOG_ERROR("Unsupported icmp code", NAT64_LOG_ICMP_CODE(icmp_hdr->code));
+		return NAT64_ERROR;
 	}
 	return NAT64_OK;
 }
