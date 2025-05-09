@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-License-Identifier: Apache-2.0
+
+
 #ifndef NAT64_TABLE_TUPLE_H
 #define NAT64_TABLE_TUPLE_H
 
