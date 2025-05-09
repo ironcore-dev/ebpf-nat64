@@ -1,0 +1,44 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ebpf-nat64
+Upstream-Contact: IronCore authors <ospo@sap.com>
+Source: https://github.com/ironcore-dev/ebpf-nat64
+
+# --------------------------------------------------
+# source code
+
+Files:
+  .github/*
+  .gitignore
+  .gitmodules
+  .golangci.yaml
+  *.json
+  *meson.build
+  Dockerfile
+  Makefile
+  go.mod
+  go.sum
+  html/*
+  build/*
+  bpftool/*
+  libbpf/*
+  vmlinux/*
+  code_check/*
+  entrypoint.sh
+  exporter/go.mod
+  exporter/go.sum
+Copyright: 2024 SAP SE or an SAP affiliate company and IronCore contributors
+License: Apache-2.0
+
+
+# --------------------------------------------------
+# documentation
+
+Files:
+  docs/*
+  *README.md
+  src/README.md
+Copyright: 2024 SAP SE or an SAP affiliate company and IronCore contributors
+License: Apache-2.0
+
+# --------------------------------------------------
+# source dependencies

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and IronCore contributors
+// SPDX-License-Identifier: Apache-2.0
+
+
+
 #ifndef NAT64_IPV6_ADDR_CHECK_H
 #define NAT64_IPV6_ADDR_CHECK_H
 
