@@ -31,6 +31,8 @@ Additionally, if your interfaces are configured with jumbo frame, it is possible
 
 Press `Ctrl-C` to terminate the program.
 
+# Prometheus exporter
+A prometheus exporter is provided to help users to get insight regarding the operation status of this program. To use this prometheus exporter, after sucessful compilation of the project, simply run `sudo ./build/exporter/exporter` to start collection of metrics from the eBPF kernel module, and run `curl -s http://192.168.23.86:2112/metrics` to query statistics. It should be noted that, the `exporter` program is supposed to run in the same linux namespace as the NAT64 program, either in the host's namespace or a container's namespace.
 
 
 # Code testing
