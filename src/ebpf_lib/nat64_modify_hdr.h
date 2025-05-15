@@ -114,6 +114,7 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	data_end = (void *)(long)ctx->data_end;
 
 	struct ipv6hdr *outer_ipv6_hdr = (struct ipv6hdr *)(data + sizeof(struct ethhdr));
+
 	assert_len(outer_ipv6_hdr, data_end);
 	__u16 l4_length = bpf_ntohs(outer_ipv6_hdr->payload_len);
 
@@ -128,9 +129,11 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	data_end = (void *)(long)ctx->data_end;
 
 	struct iphdr *inner_ipv4_hdr = (struct iphdr *)data;
+
 	assert_len(inner_ipv4_hdr, data_end);
 
 	struct iphdr inner_ipv4_tmp = {0};
+
 	memcpy(&inner_ipv4_tmp, inner_ipv4_hdr, sizeof(struct iphdr));
 
 	// Convert inner IPv4 header to IPv6
@@ -153,6 +156,7 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	data_end = (void *)(long)ctx->data_end;
 
 	struct ipv6hdr *inner_ipv6 = (struct ipv6hdr *)data;
+
 	assert_len(inner_ipv6, data_end);
 	memcpy(inner_ipv6, &tmp_inner_ipv6, sizeof(tmp_inner_ipv6));
 
@@ -160,9 +164,11 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	if (inner_ipv6->nexthdr == IPPROTO_TCP || inner_ipv6->nexthdr == IPPROTO_UDP) {
 		if (inner_ipv6->nexthdr == IPPROTO_TCP) {
 			struct tcphdr *tcp_hdr = (struct tcphdr *)(inner_ipv6 + 1);
+
 			assert_len(tcp_hdr, data_end);
 		} else {
 			struct udphdr *udp_hdr = (struct udphdr *)(inner_ipv6 + 1);
+
 			assert_len(udp_hdr, data_end);
 		}
 		ret = convert_tcp_udp_proto_port(ctx, inner_ipv6, &inner_ipv4_tmp,
@@ -200,6 +206,7 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 	data_end = (void *)(long)ctx->data_end;
 
 	struct ethhdr *restore_eth = data;
+
 	assert_len(restore_eth, data_end);
 
 	if (data + NAT64_EHT_IPv6_ICMPv6_HDR_LEN > data_end) {
@@ -210,6 +217,7 @@ convert_icmpv4_icmpv6_inner_hdrs(struct xdp_md *ctx, const struct nat64_table_va
 
 	// adjust the outer ipv6 payload length after one or two adjustment
 	struct ipv6hdr *restore_ipv6 = (struct ipv6hdr *)(data + sizeof(struct ethhdr));
+
 	assert_len(restore_ipv6, data_end);
 
 	restore_ipv6->payload_len = bpf_htons(bpf_ntohs(restore_ipv6->payload_len)
@@ -270,6 +278,7 @@ convert_icmpv4_to_icmpv6(struct xdp_md *ctx, struct icmphdr *icmp_hdr,
 	data_end = (void *)(long)ctx->data_end;
 
 	struct ipv6hdr *ipv6_hdr = (struct ipv6hdr *)(data + sizeof(struct ethhdr));
+
 	assert_len(ipv6_hdr, data_end);
 
 	icmp6_hdr = (struct icmp6hdr *)(ipv6_hdr + 1);

@@ -37,6 +37,7 @@ parse_icmp_err_msg(struct nat64_table_tuple *flow_sig, void *data_end,
 	}
 
 	struct iphdr *inner_ipv4 = (struct iphdr *)(nxt_ptr);
+
 	assert_len(inner_ipv4, data_end);
 
 	flow_sig->version = NAT64_IP_VERSION_V4;
@@ -47,11 +48,13 @@ parse_icmp_err_msg(struct nat64_table_tuple *flow_sig, void *data_end,
 
 	if (flow_sig->protocol == IPPROTO_TCP) {
 		struct tcphdr *tcp_hdr = (struct tcphdr *)(inner_ipv4 + 1);
+
 		assert_len(tcp_hdr, data_end);
 		flow_sig->src_port = tcp_hdr->dest;
 		flow_sig->dst_port = tcp_hdr->source;
 	} else if (flow_sig->protocol == IPPROTO_UDP) {
 		struct udphdr *udp_hdr = (struct udphdr *)(inner_ipv4 + 1);
+
 		assert_len(udp_hdr, data_end);
 		flow_sig->src_port = udp_hdr->dest;
 		flow_sig->dst_port = udp_hdr->source;
