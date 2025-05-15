@@ -18,8 +18,21 @@ static __always_inline int
 parse_icmp_err_msg(struct nat64_table_tuple *flow_sig, void *data_end,
 					struct icmphdr *icmp_hdr, void *nxt_ptr)
 {
-	if (icmp_hdr->code != ICMP_FRAG_NEEDED) {
-		NAT64_LOG_WARNING("Does not support other icmp code", NAT64_LOG_ICMP_CODE(icmp_hdr->code));
+	switch (icmp_hdr->code) {
+	case ICMP_NET_UNREACH:
+	case ICMP_HOST_UNREACH:
+	case ICMP_SR_FAILED:
+	case ICMP_NET_UNKNOWN:
+	case ICMP_HOST_UNKNOWN:
+	case ICMP_HOST_ISOLATED:
+	case ICMP_NET_UNR_TOS:
+	case ICMP_HOST_UNR_TOS:
+	case ICMP_PROT_UNREACH:
+	case ICMP_PORT_UNREACH:
+	case ICMP_FRAG_NEEDED:
+		break;
+	default:
+		NAT64_LOG_WARNING("Unsupported icmp error code", NAT64_LOG_ICMP_CODE(icmp_hdr->code));
 		return NAT64_ERROR;
 	}
 
@@ -59,6 +72,28 @@ convert_icmpv4_to_icmpv6_dest_unreach(struct icmphdr *icmp_hdr, struct icmp6hdr 
 	icmp6_hdr->icmp6_type = ICMPV6_DEST_UNREACH;
 
 	switch (icmp_hdr->code) {
+	case ICMP_NET_UNREACH:
+	case ICMP_HOST_UNREACH:
+	case ICMP_SR_FAILED:
+	case ICMP_NET_UNKNOWN:
+	case ICMP_HOST_UNKNOWN:
+	case ICMP_HOST_ISOLATED:
+	case ICMP_NET_UNR_TOS:
+	case ICMP_HOST_UNR_TOS:
+		icmp6_hdr->icmp6_type = ICMPV6_DEST_UNREACH;
+		icmp6_hdr->icmp6_code = ICMPV6_NOROUTE;
+		icmp6_hdr->icmp6_cksum = 0;
+		break;
+	case ICMP_PROT_UNREACH:
+		icmp6_hdr->icmp6_type = ICMPV6_PARAMPROB;
+		icmp6_hdr->icmp6_code = ICMPV6_UNK_NEXTHDR;
+		icmp6_hdr->icmp6_cksum = 0;
+		break;
+	case ICMP_PORT_UNREACH:
+		icmp6_hdr->icmp6_type = ICMPV6_DEST_UNREACH;
+		icmp6_hdr->icmp6_code = ICMPV6_PORT_UNREACH;
+		icmp6_hdr->icmp6_cksum = 0;
+		break;
 	case ICMP_FRAG_NEEDED:
 		mtu = bpf_ntohs(icmp_hdr->un.frag.mtu) + NAT64_V6_V4_HDR_LENGTH_DIFF; // or just use the same value?
 		if (mtu < 1280) {
@@ -71,7 +106,7 @@ convert_icmpv4_to_icmpv6_dest_unreach(struct icmphdr *icmp_hdr, struct icmp6hdr 
 		icmp6_hdr->icmp6_cksum = 0;
 		break;
 	default:
-		NAT64_LOG_ERROR("Unsupported icmp code", NAT64_LOG_ICMP_CODE(icmp_hdr->code));
+		NAT64_LOG_ERROR("Unsupported icmp error code", NAT64_LOG_ICMP_CODE(icmp_hdr->code));
 		return NAT64_ERROR;
 	}
 	return NAT64_OK;
