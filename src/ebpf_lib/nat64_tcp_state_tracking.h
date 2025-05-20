@@ -14,10 +14,10 @@
 
 #define NAT64_TCP_FLAGS_OFFSET 13
 
-#define NAT64_TCP_FLAG_SYN 0x0002
-#define NAT64_TCP_FLAG_RST 0x0004
-#define NAT64_TCP_FLAG_ACK 0x0010
-#define NAT64_TCP_FLAG_FIN 0x0001
+#define NAT64_TCP_FLAG_SYN 0x02
+#define NAT64_TCP_FLAG_RST 0x04
+#define NAT64_TCP_FLAG_ACK 0x10
+#define NAT64_TCP_FLAG_FIN 0x01
 #define NAT64_TCP_FLAG_SYNACK (NAT64_TCP_FLAG_SYN|NAT64_TCP_FLAG_ACK)
 
 
@@ -93,21 +93,21 @@ nat64_process_tcp_state(enum nat64_flow_direction direction, void *data_end,
 		switch (flow_value->tcp_state) {
 		case NAT64_FLOW_TCP_STATE_NONE:
 		case NAT64_FLOW_TCP_STATE_RST_FIN:
-			if (tcp_flags & NAT64_TCP_FLAG_SYN) {
+			if ((tcp_flags & 0xFF) == NAT64_TCP_FLAG_SYN && direction == NAT64_FLOW_DIRECTION_OUTGOING) { // only allow outgoing SYN sent from v6 network
 				flow_value->tcp_state = NAT64_FLOW_TCP_STATE_NEW_SYN;
 				if (NAT64_FAILED(change_reverse_traffic_tcp_state(direction, flow_sig, flow_value, flow_value->tcp_state)))
 					return NAT64_ERROR;
 			}
 			break;
 		case NAT64_FLOW_TCP_STATE_NEW_SYN:
-			if (tcp_flags & NAT64_TCP_FLAG_SYNACK) {
+			if ((tcp_flags & 0xFF) == NAT64_TCP_FLAG_SYNACK && direction == NAT64_FLOW_DIRECTION_INCOMING) {
 				flow_value->tcp_state = NAT64_FLOW_TCP_STATE_NEW_SYNACK;
 				if (NAT64_FAILED(change_reverse_traffic_tcp_state(direction, flow_sig, flow_value, flow_value->tcp_state)))
 					return NAT64_ERROR;
 			}
 			break;
 		case NAT64_FLOW_TCP_STATE_NEW_SYNACK:
-			if (tcp_flags & NAT64_TCP_FLAG_ACK) {
+			if ((tcp_flags & 0xFF) == NAT64_TCP_FLAG_ACK && direction == NAT64_FLOW_DIRECTION_OUTGOING) {
 				flow_value->tcp_state = NAT64_FLOW_TCP_STATE_ESTABLISHED;
 				if (NAT64_FAILED(change_reverse_traffic_tcp_state(direction, flow_sig, flow_value, flow_value->tcp_state)))
 					return NAT64_ERROR;
