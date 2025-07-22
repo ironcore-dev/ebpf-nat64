@@ -1,0 +1,41 @@
+version = 1
+SPDX-PackageName = "ebpf-nat64"
+SPDX-PackageSupplier = "IronCore authors <ospo@sap.com>"
+SPDX-PackageDownloadLocation = "https://github.com/ironcore-dev/ebpf-nat64"
+
+[[annotations]]
+path = [
+    ".github/**",
+    ".gitignore",
+    ".gitmodules",
+    ".golangci.yaml",
+    "*.json",
+    "**meson.build",
+    "**/meson.build",
+    "Dockerfile",
+    "Makefile",
+    "go.mod",
+    "go.sum",
+    "html/**",
+    "build/**",
+    "bpftool/**",
+    "libbpf/**",
+    "vmlinux/**",
+    "code_check/**",
+    "entrypoint.sh",
+    "exporter/go.mod",
+    "exporter/go.sum"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 SAP SE or an SAP affiliate company and IronCore contributors"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = [
+    "docs/**",
+    "**/README.md",
+    "**README.md",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 SAP SE or an SAP affiliate company and IronCore contributors"
+SPDX-License-Identifier = "Apache-2.0"
