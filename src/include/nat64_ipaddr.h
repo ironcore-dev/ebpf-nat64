@@ -5,7 +5,6 @@
 #ifndef NAT64_IPADDR_H
 #define NAT64_IPADDR_H
 
-#include <stdlib.h>
 #include <stdbool.h>
 #include <linux/in6.h>
 #include <linux/ipv6.h>

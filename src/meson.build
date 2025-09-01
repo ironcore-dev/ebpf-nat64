@@ -30,8 +30,8 @@ bpf_prog = custom_target('ebpf_nat64_bpf',
 				'-I' + meson.current_source_dir(),
 				'-I' + meson.current_source_dir() / 'ebpf_lib',
 				'-I' + meson.current_source_dir() / 'include',
-				'-I' + libbpf_src, clang_includes, '-c', '@INPUT@', '-o', '@OUTPUT@'],
-	depends : [libbpf, bpftool],
+				clang_includes, '-c', '@INPUT@', '-o', '@OUTPUT@'],
+	depends : [vmlinux_h],
 	depend_files : [bpf_common_header_files, bpf_kern_header_files],
 	build_by_default : true
 )
@@ -80,12 +80,10 @@ user_app_sources = [
 executable('ebpf_nat64',
 	[user_app_sources, app_shared_sources, bpf_skel],
 	include_directories : [
-		inc,
 		include_directories('include'),
 		include_directories('include/user_app'),
 	],
 	dependencies : [libbpf_dep, libelf, libz, thread_dep],
-	link_with : libbpf,
 	install : true
 )
 
@@ -98,12 +96,10 @@ test_app_sources = [
 executable('ebpf_nat64_test',
 	[test_app_sources, app_shared_sources, bpf_skel,],
 	include_directories : [
-		inc,
 		include_directories('include'),
 		include_directories('include/user_app'),
 		include_directories('test'),
 	],
 	dependencies : [libbpf_dep, libelf, libz, thread_dep],
-	link_with : libbpf,
 	install : true
 )

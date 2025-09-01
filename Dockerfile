@@ -1,5 +1,5 @@
 #Cannot run on debian
-FROM ubuntu:latest AS builder
+FROM ubuntu:25.04 AS builder
 
 ARG TARGETARCH
 
@@ -14,7 +14,9 @@ RUN apt-get update && \
 					ninja-build \
 					ca-certificates \
 					libbpf-dev \
-					gcc-multilib
+					gcc-multilib \
+					bpftool
+
 
 RUN curl -Ls https://golang.org/dl/go1.23.1.linux-${TARGETARCH}.tar.gz | tar xz -C /usr/local/
 ENV PATH="${PATH}:/usr/local/go/bin"
@@ -26,7 +28,6 @@ RUN git submodule update --init --recursive
 RUN GOBIN=/usr/local/bin go install github.com/cilium/ebpf/cmd/bpf2go@latest
 
 COPY meson.build meson.build
-COPY vmlinux/ vmlinux/
 COPY src/ src/
 COPY exporter exporter/
 
@@ -35,12 +36,13 @@ RUN meson build && ninja -C build
 
 
 
-FROM ubuntu:latest AS runner
+FROM ubuntu:25.04 AS runner
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
 	iproute2 \
 	iputils-ping \
+	libbpf-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/build/src/ebpf_nat64 /app/ebpf_nat64
@@ -56,11 +58,11 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 
 
 
-FROM ubuntu:latest AS tester
+FROM ubuntu:25.04 AS tester
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-	libelf-dev \
+	libbpf-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/build/src/ebpf_nat64_test /app/ebpf_nat64_test
