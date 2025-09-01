@@ -5,7 +5,7 @@ exporter_bpf2go = custom_target('exporter_bpf2go',
 	command : [bpf2go, '-cc', 'clang', '-cflags', '-O2 -g -Wall ' + '-I' + meson.current_source_dir() / '../src/include',
 				'-target', 'bpfel',
 				'exporter', '@INPUT@', '--', clang_includes],
-	depends : [],
+	depends : [vmlinux_h],
 	depend_files : [],
 	env: {'GOPACKAGE': 'main'},
 	build_by_default : true

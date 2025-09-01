@@ -22,6 +22,9 @@ on:
 
 jobs:
   buildAndPushRunner:
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
