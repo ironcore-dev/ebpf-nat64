@@ -1,0 +1,30 @@
+name: Test Using Emulation and Docker Image
+
+env:
+  platforms: linux/amd64
+
+on:
+  pull_request:
+    types: [ assigned, opened, synchronize, reopened ]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+
+jobs:
+  TestEmulated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.ref || github.event_name == 'push' && github.ref || github.event_name == 'pull_request' && github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      # build tester image
+      - name: Build image
+        id: build_image
+        run: |
+           docker build --target tester -t ebpf-nat64-tester:latest .
+      # ebpf-nat64 tests
+      - name: Run tests
+        id: run_tests
+        run: |
+           docker run --rm --privileged ebpf-nat64-tester:latest /app/entrypoint.sh --addr-port-pool 5.5.5.5:1000-2000 --log-level error --test-mode
