@@ -61,6 +61,43 @@ Additionally, if your interfaces are configured with jumbo frame, it is possible
 
 Press `Ctrl-C` to terminate the program.
 
+## Example: running ebpf-nat64 in VM
+Running ebpf-nat64 in VM for both experimenting and deloyment purposes minimises the impact of configurations on the behaviors of the currrent machine or router. Thus, an example of running ebpf-nat64 in a VM to enable real communication for an IPv6-only interface is provided here as a reference.
+
+![Demo vm](./figures/run_in_vm.png)
+
+The above figure depicts the setup for this demo of running ebpf-nat64 inside a VM. The assumption is that there is a running VM with internet connection via the ethernet interface communicating with the outside world by connecting to the standard hypervisor bridge. In this example, the VM automaticaly obtains the IP address of `192.168.123.47/24`, and please ensure the VM has internet connection by running, e.g., `sudo apt update`.
+
+The next step is to create a IPv6-only stack in a namespace to emulate the IPv6 network. To achieve this, inside the VM, run the commands below.
+
+```
+ip netns add ns-datacenter
+ip link add dc-iface type veth peer name veth-dc
+ip link set dc-iface netns ns-datacenter
+
+ip netns exec ns-datacenter ip link set dc-iface up
+ip link set veth-dc up
+
+ip netns exec ns-datacenter ip addr add 2001:db8:1::2/64 dev dc-iface
+ip netns exec ns-datacenter ip route add default via fe80::64f8:7bff:fe61:b1eb dev dc-iface //use the link-local address of veth-dc
+ip netns exec ns-datacenter ethtool -K dc-iface tx off
+
+ip -6 r add 2001:db8:1::2 dev veth-dc
+
+
+sysctl -w net.ipv4.ip_forward=1
+sysctl -w net.ipv6.conf.all.forwarding=1
+```
+
+It is possible to compile ebpf-nat64 directly in the VM or copy the compiled binary into the VM with necessary package installation. After that, running the command to start it:
+
+```
+./build/src/ebpf_nat64 --addr-port-pool 192.168.123.47:15000-25000 --south-interface veth-dc --north-interface enp1s0 --log-level debug --forwarding-mode redirect --tcp --icmp
+```
+
+Inside the namespace of `ns-datacenter`, running `wget http://[64:ff9b::5a1:7c3]:80/100MB.bin` should allow downloading this file from an actual file server on the internet.
+
+
 # Prometheus exporter
 A prometheus exporter is provided to help users to get insight regarding the operation status of this program. To use this prometheus exporter, after sucessful compilation of the project, simply run `sudo ./build/exporter/exporter` to start collection of metrics from the eBPF kernel module, and run `curl -s http://192.168.23.86:2112/metrics` to query statistics. It should be noted that, the `exporter` program is supposed to run in the same linux namespace as the NAT64 program, either in the host's namespace or a container's namespace.
 
