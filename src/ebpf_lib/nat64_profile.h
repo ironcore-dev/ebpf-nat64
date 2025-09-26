@@ -6,7 +6,7 @@
 #ifndef NAT64_PROFILE_H
 #define NAT64_PROFILE_H
 
-#include "bpf_helpers.h"
+#include <bpf/bpf_helpers.h>
 #include <linux/types.h>
 
 struct timing_stats {
