@@ -64,9 +64,9 @@ int main(int argc, char **argv)
 		goto delete_prog;
 	}
 
-	ret = nat64_addr_port_manage_init();
+	ret = nat64_populate_conf_to_maps(nat64_get_skel_instance());
 	if (NAT64_FAILED(ret)) {
-		NAT64_LOG_ERROR("Failed to initialize addr port manage");
+		NAT64_LOG_ERROR("Failed to populate config to maps");
 		goto delete_prog;
 	}
 

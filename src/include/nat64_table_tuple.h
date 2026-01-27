@@ -44,6 +44,7 @@ struct nat64_table_value {
 } __attribute__((aligned(4)));
 
 
+
 static __always_inline void
 nat64_fill_reverse_key(enum nat64_flow_direction direction, const struct nat64_table_tuple *key, const struct nat64_table_value *value,
 								struct nat64_table_tuple *reverse_key)

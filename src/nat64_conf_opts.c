@@ -23,6 +23,9 @@
 #define OPT_ENABLE_JSON_LOG "json-log"
 #define OPT_ENABLE_TEST_MODE "test-mode"
 #define OPT_FORWARDING_MODE "forwarding-mode"
+#ifdef STATELESS_NAT64
+#define OPT_NAT64_ADDRESS_MAPPING "nat64-address-mapping"
+#endif
 
 /*argument parsing related definitions*/
 static const char short_options[] = "d" /* debug */
@@ -34,6 +37,9 @@ static bool enable_skb_mode = 0;
 static char nat64_attach_north_iface_str[256] = {0};
 static char nat64_attach_south_iface_str[256] = {0};
 static char nat64_addr_port_pool_str[256] = {0};
+#ifdef STATELESS_NAT64
+static char nat64_address_mapping_str[1024] = {0};
+#endif
 static bool enable_icmp_icmp6_cksum_recalc = 0;
 static bool enable_tcp_udp_cksum_recalc = 0;
 static bool enable_multi_page_mode = 0;
@@ -56,12 +62,19 @@ enum {
 	OPT_ENABLE_JSON_LOG_NUM,
 	OPT_ENABLE_TEST_MODE_NUM,
 	OPT_FORWARDING_MODE_NUM,
+#ifdef STATELESS_NAT64
+	OPT_NAT64_ADDRESS_MAPPING_NUM,
+#endif
 };
 
 static const struct option nat64_conf_longopts[] = {
 	{OPT_DISPLAY_HELP, 0, 0, OPT_DISPLAY_HELP_NUM},
 	{OPT_LOG_LEVEL, 1, 0, OPT_LOG_LEVEL_NUM},
+#ifndef STATELESS_NAT64
 	{OPT_ADDR_PORT_POOL, 1, 0, OPT_ADDR_PORT_POOL_NUM},
+#else
+	{OPT_NAT64_ADDRESS_MAPPING, 1, 0, OPT_NAT64_ADDRESS_MAPPING_NUM},
+#endif
 	{OPT_ATTACH_NORTH_IFACE, 1, 0, OPT_ATTACH_NORTH_IFACE_NUM},
 	{OPT_ATTACH_SOUTH_IFACE, 1, 0, OPT_ATTACH_SOUTH_IFACE_NUM},
 	{OPT_ENABLE_SKB_MODE, 0, 0, OPT_ENABLE_SKB_MODE_NUM},
@@ -81,7 +94,11 @@ void nat64_print_usage(const char *prgname)
 		"%s -- \n"
 		" %-45s %s\n"
 		" %-45s %s\n"
+#ifndef STATELESS_NAT64
 		" %-45s %s\n"
+#else
+		" %-45s %s\n"
+#endif
 		" %-45s %s\n"
 		" %-45s %s\n"
 		" %-45s %s\n"
@@ -94,7 +111,11 @@ void nat64_print_usage(const char *prgname)
 		prgname,
 		"--help [-h]", "Display this help message",
 		"--log-level (error|warning|info|debug)", "Set the log level",
+#ifndef STATELESS_NAT64
 		"--addr-port-pool <addr:port-range>", "Specify the NAT address and port range",
+#else
+		"--nat64-address-mapping <v6-addr#v4-addr,...>", "Specify IPv6-IPv4 address mappings",
+#endif
 		"--north-interface <iface1,iface2,...>", "Interfaces facing IPv4 internet",
 		"--south-interface <iface1,iface2,...>", "Interfaces facing IPv6 intranet",
 		"--icmp-icmp6-cksum-recalc", "Enable icmp icmp6 checksum recalculation in software",
@@ -180,9 +201,15 @@ int nat64_parse_args(int argc, char **argv)
 				return NAT64_ERROR;
 			}
 			break;
+#ifndef STATELESS_NAT64
 		case OPT_ADDR_PORT_POOL_NUM:
 			strncpy(nat64_addr_port_pool_str, optarg, 256);
 			break;
+#else
+		case OPT_NAT64_ADDRESS_MAPPING_NUM:
+			strncpy(nat64_address_mapping_str, optarg, 1024);
+			break;
+#endif
 		case OPT_ATTACH_SOUTH_IFACE_NUM:
 			strncpy(nat64_attach_south_iface_str, optarg, 256);
 			break;
@@ -375,6 +402,13 @@ const char *nat64_get_attach_north_iface_str(void)
 {
 	return nat64_attach_north_iface_str;
 }
+
+#ifdef STATELESS_NAT64
+const char *nat64_get_nat64_address_mapping_str(void)
+{
+	return nat64_address_mapping_str;
+}
+#endif
 
 bool nat64_get_skb_mode(void)
 {

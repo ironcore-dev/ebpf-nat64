@@ -7,6 +7,8 @@
 
 #include <pthread.h>
 
+#include "nat64_common.h"
+
 int nat64_create_running_threads(void);
 int nat64_stop_running_threads(void);
 

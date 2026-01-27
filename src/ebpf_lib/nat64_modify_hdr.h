@@ -17,33 +17,32 @@
 #include <linux/icmpv6.h>
 
 #include "include/nat64_common.h"
-#include "include/nat64_table_tuple.h"
 #include "nat64_kern_log.h"
-
 #include "nat64_icmp_error_handling.h"
+#include "nat64_checksum.h"
+#include "nat64_table_tuple.h" // Include for stateless table types
 
 
 __attribute__((__always_inline__)) static void
-convert_icmpv6_to_icmpv4(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, const struct ipv6hdr *ipv6_hdr, const struct nat64_table_value *flow_value)
+convert_icmpv6_to_icmpv4(struct xdp_md *ctx, void *nxt_ptr, __u16 l4_length, const struct ipv6hdr *ipv6_hdr
+, const struct nat64_table_value *flow_value
+)
 {
 	__u8 type;
-	__be32 cksum_tmp;
-
-
-	struct icmp6hdr icmp6_hdr = {0};
+	struct icmp6hdr *icmp6_hdr_ptr = (struct icmp6hdr *)nxt_ptr;
 	struct icmphdr *icmp_hdr;
 
 	void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
 
-	type = ((struct icmp6hdr *)nxt_ptr)->icmp6_type;
+	type = icmp6_hdr_ptr->icmp6_type;
 	icmp_hdr = (struct icmphdr *)nxt_ptr;
 	if (type == ICMPV6_ECHO_REQUEST)
 		icmp_hdr->type = ICMP_ECHO;
 	else
 		icmp_hdr->type = ICMP_ECHOREPLY;
 			
-	icmp_hdr->un.echo.id = flow_value->port.nat64_port;
+	icmp_hdr->un.echo.id = ((const struct nat64_table_value *)flow_value)->port.nat64_port;
 	icmp_hdr->checksum = 0;
 
 	if (__is_icmp_icmp6_cksum_recalc_enabled)
@@ -450,4 +449,4 @@ convert_v6_pkt_to_v4_pkt(struct xdp_md *ctx, const struct nat64_table_value *flo
 	return NAT64_OK;
 }
 
-#endif
+#endif // NAT64_MODIFY_HDR_H

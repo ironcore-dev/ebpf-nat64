@@ -16,8 +16,8 @@ struct {
 	__type(key, __u16);
 	__type(value, struct nat64_kernel_config);
 	__uint(max_entries, 1);
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } nat64_kernel_config_map SEC(".maps");
-
 
 static bool __is_config_loaded = false;
 static bool __is_test_mode = false;

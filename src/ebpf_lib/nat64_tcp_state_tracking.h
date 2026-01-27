@@ -12,6 +12,7 @@
 #include "nat64_flow_handling.h"
 #include "nat64_ipaddr.h"
 
+
 #define NAT64_TCP_FLAGS_OFFSET 13
 
 #define NAT64_TCP_FLAG_SYN 0x02

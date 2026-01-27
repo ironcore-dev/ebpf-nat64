@@ -43,6 +43,8 @@ struct {
   __uint (max_entries, NAT64_NEW_FLOW_EVENT_RINGBUFFER_SIZE);
 } nat64_new_flow_event_rb SEC (".maps") /* event ringbuf to inform userspace prog in terms of new IPv6 flow */;
 
+
+// This header now only defines common structs/enums related to flow tuples, not map definitions or mode-specific logic.
 static __always_inline int
 send_new_flow_event(__u32 iface_index)
 {
@@ -61,7 +63,7 @@ send_new_flow_event(__u32 iface_index)
 
 static __always_inline int
 fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
-					__u8 ip_version, void *ip_hdr, 
+					__u8 ip_version, void *ip_hdr,
 					__u8 nxt_hdr, void *nxt_ptr)
 {
 	int ret;
@@ -83,7 +85,7 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 			break;
 		}
 		default:
-			NAT64_LOG_ERROR("Only support IPv4 or IPv6 packets", );
+			NAT64_LOG_ERROR("Only support IPv4 or IPv6 packets");
 			return NAT64_ERROR; // Invalid IP version
 	}
 
@@ -122,7 +124,7 @@ fill_flow_signature(struct nat64_table_tuple *flow_sig, void *data_end,
 		}
 	} else {
 		NAT64_LOG_ERROR("Unsupported L4 protocol", NAT64_LOG_L4_PROTOCOL(nxt_hdr));
-		return NAT64_ERROR; 
+		return NAT64_ERROR;
 	}
 
 	return NAT64_OK;
@@ -152,7 +154,7 @@ store_nat64_flow_records(const struct nat64_table_tuple *outgoing_flow_sig,
 		incoming_flow_sig.protocol = outgoing_flow_sig->protocol;
 		incoming_flow_sig.src_port = outgoing_flow_sig->dst_port; // Swap src and dst
 		incoming_flow_sig.dst_port = outgoing_flow_value->port.nat64_port;
-	
+
 		incoming_flow_value.port.original_port = outgoing_flow_sig->src_port;
 	} else {
 		incoming_flow_sig.protocol = IPPROTO_ICMP;
@@ -187,7 +189,7 @@ process_nat64_new_outgoing_ipv6_flow(__u32 iface_index,
 	struct nat64_address_port_item *item = NULL;
 
 	int ret;
-	
+
 	bool new_flow_event_sent = false;
 	bool succeed, found_unused_item = false;
 
@@ -270,5 +272,6 @@ nat64_kern_get_flow_value_by_key(enum nat64_flow_direction direction, const stru
 
 	return flow_value;
 }
+
 
 #endif

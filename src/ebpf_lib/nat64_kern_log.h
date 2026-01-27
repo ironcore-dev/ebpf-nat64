@@ -15,11 +15,10 @@
 #define NAT64_KERNEL_LOG_EVENT_RINGBUF_SIZE \
 		(sizeof(struct nat64_kernel_log_event) * NAT64_KERNEL_LOG_EVENT_RINGBUF_ENTRY_CNT)
 
-
 struct {
   __uint (type, BPF_MAP_TYPE_RINGBUF);
   __uint (max_entries, NAT64_KERNEL_LOG_EVENT_RINGBUF_SIZE);
-} nat64_kernel_log_event_rb SEC (".maps") /* event ringbuf to inform userspace prog in terms of new IPv6 flow */;
+} nat64_kernel_log_event_rb SEC (".maps") /* kernel log ringbuffer */;
 
 
 // event->timestamp = bpf_ktime_get_ns();

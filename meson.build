@@ -62,6 +62,9 @@ endforeach
 clang_includes += ['-idirafter', '/usr/include']  # System headers
 clang_includes += ['-idirafter', meson.current_build_dir()]  # Generated vmlinux.h
 
+if get_option('stateless')
+  add_project_arguments('-DSTATELESS_NAT64', language : 'c')
+endif
 
 subdir('src')
 subdir('exporter')

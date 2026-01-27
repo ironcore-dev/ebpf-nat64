@@ -18,6 +18,11 @@ int nat64_parse_config_file(const char *env_filename);
 const char *nat64_get_addr_port_pool_str(void);
 const char *nat64_get_attach_south_iface_str(void);
 const char *nat64_get_attach_north_iface_str(void);
+
+#ifdef STATELESS_NAT64
+const char *nat64_get_nat64_address_mapping_str(void);
+#endif
+
 bool nat64_get_skb_mode(void);
 bool nat64_get_enable_icmp_icmp6_cksum_recalc(void);
 bool nat64_get_enable_tcp_udp_cksum_recalc(void);

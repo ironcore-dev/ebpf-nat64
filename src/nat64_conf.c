@@ -9,19 +9,89 @@
 
 #include "nat64_conf.h"
 #include "nat64_user_log.h"
-#include "nat64_addr_port_assignment.h"
 
 #include "nat64_ebpf_skel_handler.h"
 
+#ifndef STATELESS_NAT64
+#include "nat64_addr_port_assignment.h"
+#include "nat64_addr_port_manage.h"
 
-
-/*NAT64 configuration variables*/
+/*Stateful NAT64 configuration variables*/
 static struct nat64_address_ports_range nat64_addr_port_pool[NAT64_ADDR_PORT_POOL_SIZE] = {0};
 static int addr_port_item_cnt = 0;
+
+#else
+#define MAX_STATELESS_MAPPING_CNT 5
+
+struct nat64_stateless_mapping stateless_mappings[MAX_STATELESS_MAPPING_CNT];
+int stateless_mapping_cnt = 0;
+
+#endif
+
+
 
 struct nat64_attach_iface_info attach_iface_info[NAT64_ATTACH_IFACE_MAX_CNT] = {0};
 int attach_iface_cnt = 0;
 
+#ifdef STATELESS_NAT64
+int parse_nat64_address_mapping_str(const char *mapping_str)
+{
+	char *str = strdup(mapping_str);
+	char *token, *saveptr;
+
+	token = strtok_r(str, ",", &saveptr);
+	while (token != NULL && stateless_mapping_cnt < MAX_STATELESS_MAPPING_CNT) {
+		char *v6_str = strtok(token, "#");
+		char *v4_str = strtok(NULL, "#");
+
+		if (v6_str && v4_str) {
+			if (inet_pton(AF_INET6, v6_str, &stateless_mappings[stateless_mapping_cnt].v6_addr) != 1) {
+				NAT64_LOG_ERROR("Invalid IPv6 address in stateless mapping", NAT64_LOG_OPT_STR(v6_str));
+				free(str);
+				return NAT64_ERROR;
+			}
+			struct in_addr v4_addr_struct;
+			if (inet_pton(AF_INET, v4_str, &v4_addr_struct) != 1) {
+				NAT64_LOG_ERROR("Invalid IPv4 address in stateless mapping", NAT64_LOG_OPT_STR(v4_str));
+				free(str);
+				return NAT64_ERROR;
+			}
+			stateless_mappings[stateless_mapping_cnt].v4_addr = v4_addr_struct.s_addr;
+			stateless_mapping_cnt++;
+		}
+		token = strtok_r(NULL, ",", &saveptr);
+	}
+
+	free(str);
+	return NAT64_OK;
+}
+
+int nat64_populate_conf_to_maps(struct ebpf_nat64_bpf *skel)
+{
+	int ret = 0;
+	for (int i = 0; i < stateless_mapping_cnt; i++) {
+		// v6 -> v4
+		union ipv6_addr v6_key = stateless_mappings[i].v6_addr;
+		__u32 v6_value = stateless_mappings[i].v4_addr;
+		ret = bpf_map_update_elem(bpf_map__fd(skel->maps.nat64_stateless_v6_v4_map), &v6_key, &v6_value, BPF_ANY);
+		if (ret < 0) {
+			NAT64_LOG_ERROR("Failed to update stateless v6->v4 map", NAT64_LOG_ERRNO(errno));
+			return NAT64_ERROR;
+		}
+
+		// v4 -> v6
+		__u32 v4_key = stateless_mappings[i].v4_addr;
+		union ipv6_addr v4_value = stateless_mappings[i].v6_addr;
+		ret = bpf_map_update_elem(bpf_map__fd(skel->maps.nat64_stateless_v4_v6_map), &v4_key, &v4_value, BPF_ANY);
+		if (ret < 0) {
+			NAT64_LOG_ERROR("Failed to update stateless v4->v6 map", NAT64_LOG_ERRNO(errno));
+			return NAT64_ERROR;
+		}
+	}
+	return NAT64_OK;
+}
+
+#else
 int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
 {
 	char *pool_str = strdup(nat64_addr_port_pool_str);
@@ -58,6 +128,41 @@ int parse_addr_port_pool_str(const char *nat64_addr_port_pool_str)
 	return NAT64_OK;
 }
 
+int nat64_populate_conf_to_maps(struct ebpf_nat64_bpf *skel)
+{
+	int ret = nat64_addr_port_manage_init();
+	if (NAT64_FAILED(ret)) {
+		NAT64_LOG_ERROR("Failed to initialize addr port manage");
+		return NAT64_ERROR;
+	}
+	return NAT64_OK;
+}
+
+int nat64_get_parsed_addr_port_cnt(void)
+{
+	return addr_port_item_cnt;
+}
+
+const struct nat64_address_ports_range *nat64_get_parsed_addr_port_pool(void)
+{
+	return nat64_addr_port_pool;
+}
+
+static void print_addr_port_pool(void)
+{
+	int addr_port_item_cnt = nat64_get_parsed_addr_port_cnt();
+	const struct nat64_address_ports_range *nat64_addr_port_pool = nat64_get_parsed_addr_port_pool();
+
+	for (int i = 0; i < addr_port_item_cnt; i++) {
+		NAT64_LOG_INFO("Added a combination of a nat address and a port range", NAT64_LOG_IPV4(nat64_addr_port_pool[i].addr),
+						NAT64_LOG_MIN_PORT(nat64_addr_port_pool[i].port_range[0]),
+						NAT64_LOG_MAX_PORT(nat64_addr_port_pool[i].port_range[1]));
+
+	}
+}
+
+#endif
+
 
 static int parse_attach_iface_str(const char *nat64_attach_iface_str, enum nat64_iface_direction direction)
 {
@@ -91,11 +196,19 @@ static int convert_parsed_args(void)
 {
 	int ret;
 
+#ifndef STATELESS_NAT64
 	ret = parse_addr_port_pool_str(nat64_get_addr_port_pool_str());
 	if (NAT64_FAILED(ret)) {
 		NAT64_LOG_ERROR("Failed to parse addr:port pool string");
 		return NAT64_ERROR;
 	}
+#else
+	ret = parse_nat64_address_mapping_str(nat64_get_nat64_address_mapping_str());
+	if (NAT64_FAILED(ret)) {
+		NAT64_LOG_ERROR("Failed to parse stateless mapping string");
+		return NAT64_ERROR;
+	}
+#endif
 
 	ret = parse_attach_iface_str(nat64_get_attach_south_iface_str(), NAT64_IFACE_DIRECTION_SOUTH);
 	if (NAT64_FAILED(ret)) {
@@ -113,15 +226,6 @@ static int convert_parsed_args(void)
 }
 
 
-int nat64_get_parsed_addr_port_cnt(void)
-{
-	return addr_port_item_cnt;
-}
-
-const struct nat64_address_ports_range *nat64_get_parsed_addr_port_pool(void)
-{
-	return nat64_addr_port_pool;
-}
 
 int nat64_get_parsed_attach_iface_cnt(void)
 {
@@ -134,18 +238,7 @@ const struct nat64_attach_iface_info *nat64_get_parsed_attach_iface_info(void)
 }
 
 
-static void print_addr_port_pool(void)
-{
-	int addr_port_item_cnt = nat64_get_parsed_addr_port_cnt();
-	const struct nat64_address_ports_range *nat64_addr_port_pool = nat64_get_parsed_addr_port_pool();
 
-	for (int i = 0; i < addr_port_item_cnt; i++) {
-		NAT64_LOG_INFO("Added a combination of a nat address and a port range", NAT64_LOG_IPV4(nat64_addr_port_pool[i].addr),
-						NAT64_LOG_MIN_PORT(nat64_addr_port_pool[i].port_range[0]),
-						NAT64_LOG_MAX_PORT(nat64_addr_port_pool[i].port_range[1]));
-
-	}
-}
 
 static void print_iface_indexes(void)
 {
@@ -159,7 +252,7 @@ static void print_iface_indexes(void)
 
 void nat64_print_parsed_results(void)
 {
-	print_addr_port_pool();
+	// print_addr_port_pool();
 	print_iface_indexes();
 }
 

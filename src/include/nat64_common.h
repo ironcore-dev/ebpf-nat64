@@ -17,6 +17,31 @@
 	((RET) < 0)
 
 #define NAT64_ATTACH_IFACE_MAX_CNT 4 //Please use 4,8,16,32, etc.
+
+#define NAT64_KERNEL_CONFIG_MAP_KEY 0
+
+enum nat64_ip_version {
+	NAT64_IP_VERSION_NON,
+	NAT64_IP_VERSION_V4,
+	NAT64_IP_VERSION_V6,
+};
+
+#define assert_len(target, end)  \
+	if ((void *)(target + 1) > end) { \
+		NAT64_LOG_ERROR("Invalid packet length"); \
+		return NAT64_ERROR; \
+	} \
+
+// Define pkt forwarding mode
+#define NAT64_PKT_FORWARDING_MODE_KERNEL	0
+#define NAT64_PKT_FORWARDING_MODE_TX		1
+#define NAT64_PKT_FORWARDING_MODE_REDIRECT	2
+
+#define NAT64_V6_V4_HDR_LENGTH_DIFF ((int)(sizeof(struct ipv6hdr) - sizeof(struct iphdr)))
+#define NAT64_EHT_IPv6_ICMPv6_HDR_LEN ((int)(sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct icmp6hdr)))
+
+#ifndef STATELESS_NAT64
+
 #define NAT64_ADDR_PORT_POOL_SIZE 3
 #define NAT64_MAX_PORT_PER_ADDR 16384 // (65535-49152)
 #define NAT64_MAX_ADDR_PORT_IN_USE (NAT64_ADDR_PORT_POOL_SIZE * NAT64_MAX_PORT_PER_ADDR)
@@ -37,30 +62,16 @@
 
 #define NAT64_ADDR_PORT_ASSIGNMENT_FETCH_RETRY 10
 
-#define NAT64_KERNEL_CONFIG_MAP_KEY 0
 
-
-// Define pkt forwarding mode
-#define NAT64_PKT_FORWARDING_MODE_KERNEL	0
-#define NAT64_PKT_FORWARDING_MODE_TX		1
-#define NAT64_PKT_FORWARDING_MODE_REDIRECT	2
-
-#define NAT64_V6_V4_HDR_LENGTH_DIFF ((int)(sizeof(struct ipv6hdr) - sizeof(struct iphdr)))
-#define NAT64_EHT_IPv6_ICMPv6_HDR_LEN ((int)(sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct icmp6hdr)))
-
-enum nat64_ip_version {
-	NAT64_IP_VERSION_NON,
-	NAT64_IP_VERSION_V4,
-	NAT64_IP_VERSION_V6,
+struct nat64_ipv6_new_flow_event {
+	__u32 iface_index;
 };
+
+#endif
 
 enum nat64_flow_direction {
 	NAT64_FLOW_DIRECTION_OUTGOING,
 	NAT64_FLOW_DIRECTION_INCOMING,
-};
-
-struct nat64_ipv6_new_flow_event {
-	__u32 iface_index;
 };
 
 struct nat64_kernel_config {

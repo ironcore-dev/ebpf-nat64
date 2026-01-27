@@ -37,9 +37,30 @@
 static const char *pin_basedir = NAT64_SHARED_MAP_PIN_PATH;
 
 // List of map names to unpin
+#ifndef STATELESS_NAT64
 static const char *map_names[] = {
 	NAT64_MAP_FACTORY(NAT64_MAP_NAME)
+	"nat64_addr_port_range_map",
+	"nat64_addr_assignment_map",
+	"nat64_alloc_map",
+	"nat64_v6_v4_map",
+	"nat64_v4_v6_map",
+	"nat64_new_flow_event_rb",
+	"nat64_kernel_log_event_rb",
+	"nat64_kernel_config_map",
+	"nat64_stats_map",
 };
+#else
+static const char *map_names[] = {
+	NAT64_MAP_FACTORY(NAT64_MAP_NAME)
+	"nat64_stateless_v6_v4_map",
+	"nat64_stateless_v4_v6_map",
+	"nat64_kernel_log_event_rb",
+	"nat64_kernel_config_map",
+	"nat64_stats_map",
+};
+#endif
+
 
 
 static struct ebpf_nat64_bpf *skel = NULL;
@@ -204,6 +225,11 @@ void nat64_destroy_prog_skeleton(void)
 int nat64_get_prog_fd(void)
 {
 	return bpf_program__fd(skel->progs.xdp_nat64);
+}
+
+struct ebpf_nat64_bpf* nat64_get_skel_instance(void)
+{
+	return skel;
 }
 
 NAT64_MAP_FACTORY(NAT64_MAP_FD_GETTER_IMPL)

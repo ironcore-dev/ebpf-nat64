@@ -1,0 +1,1 @@
+option('stateless', type : 'boolean', value : false, description : 'Enable stateless NAT64 mode')

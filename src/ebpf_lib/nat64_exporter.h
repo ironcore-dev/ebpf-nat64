@@ -18,6 +18,8 @@ struct {
 	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } nat64_stats_map SEC(".maps");
 
+
+
 #define NAT64_EXPORTER_STATS_FIELD_INCREMENT(name) \
 	static __always_inline int nat64_exporter_increment_##name(void) \
 	{ \
