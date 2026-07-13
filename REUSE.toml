@@ -12,6 +12,7 @@ path = [
     "*.json",
     "**meson.build",
     "**/meson.build",
+    "CODEOWNERS",
     "Dockerfile",
     "Makefile",
     "go.mod",
