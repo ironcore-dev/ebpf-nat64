@@ -1,5 +1,5 @@
 #Cannot run on debian
-FROM ubuntu:25.04 AS builder
+FROM ubuntu:26.04 AS builder
 
 ARG TARGETARCH
 
@@ -37,7 +37,7 @@ RUN meson build && ninja -C build
 
 
 
-FROM ubuntu:25.04 AS tester
+FROM ubuntu:26.04 AS tester
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -57,7 +57,7 @@ RUN chmod +x /app/entrypoint.sh
 
 
 
-FROM ubuntu:25.04 AS runner
+FROM ubuntu:26.04 AS runner
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
