@@ -8,7 +8,7 @@
 
 #include "nat64_exporter_stats.h"
 
-__s64 bpf_map_sum_elem_count(struct bpf_map *map) __ksym;
+__s64 bpf_map_sum_elem_count(const struct bpf_map *map) __ksym;
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
