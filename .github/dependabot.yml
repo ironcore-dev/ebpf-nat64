@@ -1,0 +1,38 @@
+---
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/exporter"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      ironcore:
+        patterns:
+          - "github.com/ironcore-dev/*"
+      misc:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      gh-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      docker:
+        patterns:
+          - "*"
