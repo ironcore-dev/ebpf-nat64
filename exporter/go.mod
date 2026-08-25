@@ -1,4 +1,4 @@
-module github.com/byteocean/ebpf-nat64/exporter
+module github.com/ironcore-dev/ebpf-nat64/exporter
 
 go 1.23.1
 
